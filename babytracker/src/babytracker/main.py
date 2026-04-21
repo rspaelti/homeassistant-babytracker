@@ -12,6 +12,7 @@ from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings
 from babytracker.routes import growth as growth_routes
+from babytracker.routes import setup as setup_routes
 
 
 class IngressPathMiddleware(BaseHTTPMiddleware):
@@ -47,6 +48,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 app.include_router(growth_routes.router)
+app.include_router(setup_routes.router)
 
 
 @app.get("/healthz")

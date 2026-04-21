@@ -26,11 +26,8 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "
 TZ = ZoneInfo(settings.timezone)
 
 
-def _get_child(session: Session) -> Child:
-    child = session.exec(select(Child).where(Child.active == True).order_by(Child.id)).first()  # noqa: E712
-    if not child:
-        raise HTTPException(status_code=404, detail="Kein Kind angelegt")
-    return child
+def _get_child(session: Session) -> Child | None:
+    return session.exec(select(Child).where(Child.active == True).order_by(Child.id)).first()  # noqa: E712
 
 
 def _get_user_id(session: Session, user: CurrentUser) -> int | None:
@@ -44,10 +41,13 @@ async def growth_index(
     kind: str = "weight",
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+):
     if kind not in KIND_LABELS:
         kind = "weight"
     child = _get_child(session)
+    if not child:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/setup/child", status_code=303)
     chart = build_chart(session, child, kind)
 
     latest = chart.points[-1] if chart.points else None
@@ -77,10 +77,13 @@ async def growth_new(
     kind: str = "weight",
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
-) -> HTMLResponse:
+):
     if kind not in KIND_LABELS:
         kind = "weight"
     child = _get_child(session)
+    if not child:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/setup/child", status_code=303)
     now_local = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M")
     return templates.TemplateResponse(
         request,
@@ -128,6 +131,9 @@ async def growth_create(
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
 
     child = _get_child(session)
+    if not child:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/setup/child", status_code=303)
     m = Measurement(
         child_id=child.id,
         measured_at=dt_local,

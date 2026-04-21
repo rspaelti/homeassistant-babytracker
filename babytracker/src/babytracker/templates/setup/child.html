@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ "Kind bearbeiten" if existing else "Kind anlegen" }} · Baby-Tracker{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-2">{{ "Kind bearbeiten" if existing else "Kind anlegen" }}</h1>
+
+{% if not existing %}
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+  Damit die Wachstumskurven funktionieren, trage bitte Name, Geschlecht und Geburtsdaten ein.
+  Geburtsgewicht und -länge werden als erste Messungen hinterlegt.
+</p>
+{% endif %}
+
+<form method="post" action="{{ root }}/setup/child" class="space-y-4">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Name</span>
+    <input type="text" name="name" required maxlength="64" value="{{ prefill.name }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg">
+  </label>
+
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Geschlecht</span>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      {% for val, lbl in [('f', 'Mädchen'), ('m', 'Junge')] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="sex" value="{{ val }}" class="peer sr-only" required
+               {% if prefill.sex == val %}checked{% endif %}>
+        <div class="text-center px-3 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Geburtszeitpunkt</span>
+    <input type="datetime-local" name="birth_at" required value="{{ prefill.birth_at }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Geburtsgewicht (g)</span>
+    <input type="number" name="birth_weight_g" min="500" max="7000" step="1" inputmode="numeric"
+           value="{{ prefill.birth_weight_g }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg">
+  </label>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Geburtslänge (cm)</span>
+    <input type="number" name="birth_length_cm" min="30" max="70" step="0.1" inputmode="decimal"
+           value="{{ prefill.birth_length_cm }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    {{ "Speichern" if existing else "Anlegen" }}
+  </button>
+</form>
+
+{% endblock %}

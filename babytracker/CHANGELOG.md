@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- New `/setup/child` page with form to create/edit the child directly in the UI
+- `/growth*` redirects to `/setup/child` when no child exists (instead of 404)
+- Debug log for add-on config values at startup
+
 ## 0.1.5
 
 - Fix HA Ingress: read `X-Ingress-Path` header as `root_path`, prefix all internal links with it. App now works correctly inside HA's ingress tunnel.

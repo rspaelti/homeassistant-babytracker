@@ -18,6 +18,8 @@ export BT_HA_URL="http://supervisor/core"
 export BT_HA_TOKEN="${SUPERVISOR_TOKEN}"
 export BT_INGRESS=1
 
+bashio::log.info "Config debug: child_name='${BT_CHILD_NAME}' sex='${BT_CHILD_SEX}' birth_at='${BT_CHILD_BIRTH_AT}' weight_g='${BT_CHILD_BIRTH_WEIGHT_G}' length_cm='${BT_CHILD_BIRTH_LENGTH_CM}'"
+
 mkdir -p "$BT_PHOTOS_DIR" "$BT_BACKUPS_DIR"
 
 cd /app
