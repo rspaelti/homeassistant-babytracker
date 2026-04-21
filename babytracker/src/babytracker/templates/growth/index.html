@@ -6,7 +6,7 @@
 
 <div class="flex items-center justify-between mb-3">
   <h1 class="text-xl font-bold">Wachstum</h1>
-  <a href="/growth/new?kind={{ kind }}"
+  <a href="{{ root }}/growth/new?kind={{ kind }}"
      class="bg-brand text-white font-semibold px-3 py-1.5 rounded-lg text-sm">
     + Messung
   </a>
@@ -14,7 +14,7 @@
 
 <div class="flex gap-2 mb-4 text-sm">
   {% for k, lbl in kinds %}
-    <a href="/growth?kind={{ k }}"
+    <a href="{{ root }}/growth?kind={{ k }}"
        class="px-3 py-1.5 rounded-lg border
               {% if k == kind %}bg-brand text-white border-brand
               {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">

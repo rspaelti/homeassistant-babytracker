@@ -6,11 +6,27 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings
 from babytracker.routes import growth as growth_routes
+
+
+class IngressPathMiddleware(BaseHTTPMiddleware):
+    """Liest X-Ingress-Path-Header und setzt ihn als root_path.
+
+    Dadurch funktioniert die App sowohl direkt (localhost) als auch hinter
+    HA-Ingress (`/api/hassio_ingress/<token>/...`). Templates nutzen
+    `request.scope.root_path` als Präfix für alle internen Links.
+    """
+
+    async def dispatch(self, request, call_next):
+        ingress_path = request.headers.get("x-ingress-path", "")
+        if ingress_path:
+            request.scope["root_path"] = ingress_path
+        return await call_next(request)
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -23,6 +39,8 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/api/openapi.json",
 )
+
+app.add_middleware(IngressPathMiddleware)
 
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

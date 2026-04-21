@@ -5,17 +5,17 @@
 {% block content %}
 
 <div class="flex items-center gap-2 mb-3">
-  <a href="/growth?kind={{ kind }}" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+  <a href="{{ root }}/growth?kind={{ kind }}" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
 <h1 class="text-xl font-bold mb-4">Neue {{ label }}-Messung</h1>
 
-<form method="post" action="/growth/new" class="space-y-4">
+<form method="post" action="{{ root }}/growth/new" class="space-y-4">
   <input type="hidden" name="kind" value="{{ kind }}">
 
   <div class="flex gap-2 text-sm">
     {% for k, lbl in kinds %}
-      <a href="/growth/new?kind={{ k }}"
+      <a href="{{ root }}/growth/new?kind={{ k }}"
          class="flex-1 text-center px-3 py-2 rounded-lg border
                 {% if k == kind %}bg-brand text-white border-brand
                 {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">

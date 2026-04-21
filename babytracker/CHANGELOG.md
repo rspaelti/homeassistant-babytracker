@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- Fix HA Ingress: read `X-Ingress-Path` header as `root_path`, prefix all internal links with it. App now works correctly inside HA's ingress tunnel.
+
 ## 0.1.4
 
 - Fix AttributeError on home page: `settings.default_child` was renamed to `settings.child_display_name` during sanitisation but home route still referenced the old name

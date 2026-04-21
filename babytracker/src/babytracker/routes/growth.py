@@ -100,6 +100,7 @@ async def growth_new(
 
 @router.post("/growth/new")
 async def growth_create(
+    request: Request,
     kind: str = Form(...),
     value: float = Form(...),
     measured_at: str = Form(...),
@@ -139,4 +140,4 @@ async def growth_create(
     session.add(m)
     session.commit()
 
-    return RedirectResponse(url=f"/growth?kind={kind}", status_code=303)
+    return RedirectResponse(url=f"{request.scope.get('root_path', '')}/growth?kind={kind}", status_code=303)
