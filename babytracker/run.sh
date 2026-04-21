@@ -9,16 +9,9 @@ export BT_WHO_DIR=/app/data/who
 export BT_TIMEZONE="$(bashio::config 'timezone')"
 export BT_OWLET_PREFIX="$(bashio::config 'owlet_entity_prefix')"
 export BT_LOG_LEVEL="$(bashio::config 'log_level')"
-export BT_CHILD_NAME="$(bashio::config 'child_name')"
-export BT_CHILD_SEX="$(bashio::config 'child_sex')"
-export BT_CHILD_BIRTH_AT="$(bashio::config 'child_birth_at')"
-export BT_CHILD_BIRTH_WEIGHT_G="$(bashio::config 'child_birth_weight_g')"
-export BT_CHILD_BIRTH_LENGTH_CM="$(bashio::config 'child_birth_length_cm')"
 export BT_HA_URL="http://supervisor/core"
 export BT_HA_TOKEN="${SUPERVISOR_TOKEN}"
 export BT_INGRESS=1
-
-bashio::log.info "Config debug: child_name='${BT_CHILD_NAME}' sex='${BT_CHILD_SEX}' birth_at='${BT_CHILD_BIRTH_AT}' weight_g='${BT_CHILD_BIRTH_WEIGHT_G}' length_cm='${BT_CHILD_BIRTH_LENGTH_CM}'"
 
 mkdir -p "$BT_PHOTOS_DIR" "$BT_BACKUPS_DIR"
 
@@ -30,7 +23,7 @@ uv run alembic upgrade head
 bashio::log.info "Loading WHO LMS data if empty..."
 uv run python -m babytracker.scripts.load_who --if-empty
 
-bashio::log.info "Seeding default child if DB empty..."
+bashio::log.info "Ensuring parent user exists..."
 uv run python -m babytracker.scripts.seed || true
 
 bashio::log.info "Starting Baby-Tracker on port 8099..."

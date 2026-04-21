@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
 from pathlib import Path
 
 from pydantic import Field
@@ -21,34 +20,11 @@ class Settings(BaseSettings):
     owlet_prefix: str = "sensor.dream_sock_"
     log_level: str = "info"
 
-    child_name: str = ""
-    child_sex: str = "f"
-    child_birth_at: str = ""
-    child_birth_weight_g: int = 0
-    child_birth_length_cm: float = 0.0
-
     ha_url: str | None = None
     ha_token: str | None = None
 
     ingress: bool = False
     dev_user: str | None = None
-
-    @property
-    def db_url(self) -> str:
-        return f"sqlite:///{self.db_path}"
-
-    @property
-    def child_birth_dt(self) -> datetime | None:
-        if not self.child_birth_at:
-            return None
-        try:
-            return datetime.fromisoformat(self.child_birth_at)
-        except ValueError:
-            return None
-
-    @property
-    def child_display_name(self) -> str:
-        return self.child_name or "Baby"
 
 
 settings = Settings()

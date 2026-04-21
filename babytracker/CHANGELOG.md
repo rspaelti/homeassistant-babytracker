@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7
+
+- Remove child_* options from add-on config — setup is done in-app via `/setup/child`
+- Add placeholder pages for `/quick`, `/mother`, `/settings` (no more 404s from nav)
+- Home page shows actual child name from database (not from config)
+- Seed script now only ensures a parent user exists
+
 ## 0.1.6
 
 - New `/setup/child` page with form to create/edit the child directly in the UI

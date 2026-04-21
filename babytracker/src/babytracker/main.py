@@ -8,11 +8,24 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from sqlmodel import Session, select
+
 from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
-from babytracker.config import settings
+from babytracker.config import settings  # noqa: F401  # keep env/side effects
+from babytracker.db import engine
+from babytracker.models import Child
 from babytracker.routes import growth as growth_routes
+from babytracker.routes import placeholders as placeholder_routes
 from babytracker.routes import setup as setup_routes
+
+
+def _current_child_name() -> str:
+    with Session(engine) as session:
+        child = session.exec(
+            select(Child).where(Child.active == True).order_by(Child.id)  # noqa: E712
+        ).first()
+    return child.name if child else "Baby"
 
 
 class IngressPathMiddleware(BaseHTTPMiddleware):
@@ -49,6 +62,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 app.include_router(growth_routes.router)
 app.include_router(setup_routes.router)
+app.include_router(placeholder_routes.router)
 
 
 @app.get("/healthz")
@@ -67,6 +81,6 @@ async def home(
         {
             "user": user,
             "version": __version__,
-            "child_name": settings.child_display_name,
+            "child_name": _current_child_name(),
         },
     )
