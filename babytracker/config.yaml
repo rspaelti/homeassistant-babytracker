@@ -1,5 +1,5 @@
 name: "Baby-Tracker"
-version: "0.1.9"
+version: "0.2.0"
 slug: babytracker
 description: "Tracking für Wachstum (WHO-Perzentilen), Ernährung, Schlaf, Vitalwerte, Gesundheit und Wochenbett"
 url: "https://github.com/rspaelti/homeassistant-babytracker"

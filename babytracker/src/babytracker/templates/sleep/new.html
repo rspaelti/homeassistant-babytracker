@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}Schlaf eintragen · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/sleep" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-4">Schlaf nachträglich eintragen</h1>
+
+<form method="post" action="{{ root }}/sleep/new" class="space-y-4">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Einschlaf</span>
+    <input type="datetime-local" name="started_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Aufwachen (leer = läuft noch)</span>
+    <input type="datetime-local" name="ended_at"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Ort</span>
+    <div class="grid grid-cols-3 gap-2 text-sm">
+      {% for val, lbl in locations %}
+      <label class="cursor-pointer">
+        <input type="radio" name="location" value="{{ val }}" class="peer sr-only">
+        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <input type="text" name="notes" maxlength="500"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}

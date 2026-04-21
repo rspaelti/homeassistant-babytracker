@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block title %}Neue Windel · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/diaper" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-4">Neue Windel</h1>
+
+<form method="post" action="{{ root }}/diaper/new" class="space-y-4" x-data="{ pee: false, stool: false }">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
+    <input type="datetime-local" name="changed_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <div class="grid grid-cols-2 gap-3">
+    <label class="cursor-pointer">
+      <input type="checkbox" name="pee" value="1" class="peer sr-only" x-model="pee">
+      <div class="text-center px-3 py-5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                  peer-checked:bg-amber-100 peer-checked:dark:bg-amber-900/30 peer-checked:border-amber-400 text-lg font-semibold">
+        💧 Pipi
+      </div>
+    </label>
+    <label class="cursor-pointer">
+      <input type="checkbox" name="stool" value="1" class="peer sr-only" x-model="stool">
+      <div class="text-center px-3 py-5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                  peer-checked:bg-amber-100 peer-checked:dark:bg-amber-900/30 peer-checked:border-amber-400 text-lg font-semibold">
+        💩 Stuhl
+      </div>
+    </label>
+  </div>
+
+  <div x-show="pee" class="space-y-2">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">Pipi-Intensität</span>
+    <div class="grid grid-cols-3 gap-2 text-sm">
+      {% for val, lbl in pee_intensity %}
+      <label class="cursor-pointer">
+        <input type="radio" name="pee_intensity" value="{{ val }}" class="peer sr-only" {% if val == 'normal' %}checked{% endif %}>
+        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div x-show="stool" class="space-y-2">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">Stuhl-Farbe</span>
+    <div class="grid grid-cols-3 gap-2 text-sm">
+      {% for val, lbl in stool_colors %}
+      <label class="cursor-pointer">
+        <input type="radio" name="stool_color" value="{{ val }}" class="peer sr-only">
+        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block pt-2">Konsistenz</span>
+    <div class="grid grid-cols-4 gap-2 text-sm">
+      {% for val, lbl in stool_consistency %}
+      <label class="cursor-pointer">
+        <input type="radio" name="stool_consistency" value="{{ val }}" class="peer sr-only">
+        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <input type="text" name="notes" maxlength="500"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}

@@ -14,7 +14,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
 
-def _placeholder(request: Request, user: CurrentUser, title: str, phase: str, planned: list[str]):
+def _placeholder(request, user, title, phase, planned):
     return templates.TemplateResponse(
         request,
         "placeholder.html",
@@ -26,23 +26,6 @@ def _placeholder(request: Request, user: CurrentUser, title: str, phase: str, pl
             "phase": phase,
             "planned": planned,
         },
-    )
-
-
-@router.get("/quick", response_class=HTMLResponse)
-async def quick(request: Request, user: CurrentUser = Depends(get_current_user)):
-    return _placeholder(
-        request, user,
-        title="Schnell-Eingabe",
-        phase="Phase 2",
-        planned=[
-            "🍼 Stillen / Flasche starten/stoppen",
-            "💩 Windel erfassen (Pipi / Stuhl / Farbe)",
-            "😴 Schlaf-Session",
-            "🌡️ Temperatur",
-            "💊 Medikamenten-Gabe",
-            "📝 Freie Notiz",
-        ],
     )
 
 

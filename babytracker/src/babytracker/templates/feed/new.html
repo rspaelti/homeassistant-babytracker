@@ -1,0 +1,169 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ 'Stillen' if kind == 'breast' else 'Flasche' }} · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/feed" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<div class="flex gap-2 mb-4 text-sm">
+  <a href="{{ root }}/feed/new?kind=breast"
+     class="flex-1 text-center px-3 py-2 rounded-lg border
+            {% if kind == 'breast' %}bg-brand text-white border-brand
+            {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+    🤱 Stillen
+  </a>
+  <a href="{{ root }}/feed/new?kind=bottle"
+     class="flex-1 text-center px-3 py-2 rounded-lg border
+            {% if kind == 'bottle' %}bg-brand text-white border-brand
+            {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+    🍼 Flasche
+  </a>
+</div>
+
+<form method="post" action="{{ root }}/feed/new" class="space-y-4" x-data="feedTimer()">
+  <input type="hidden" name="kind" value="{{ kind }}">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Startzeit</span>
+    <input type="datetime-local" name="started_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  {% if kind == 'breast' %}
+  <input type="hidden" name="breast_side_primary" value="{{ default_side }}">
+
+  <div class="rounded-2xl border-2 border-brand bg-brand/5 dark:bg-brand/10 p-4 space-y-3">
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Live-Timer (optional)</div>
+    <div class="text-5xl font-mono text-center my-2" x-text="display"></div>
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" @click="toggle('left')"
+              :class="side === 'left' ? 'bg-brand text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300'"
+              class="rounded-lg border border-brand py-3 font-semibold">
+        Links<br><span class="text-xs" x-text="leftFmt"></span>
+      </button>
+      <button type="button" @click="toggle('right')"
+              :class="side === 'right' ? 'bg-brand text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300'"
+              class="rounded-lg border border-brand py-3 font-semibold">
+        Rechts<br><span class="text-xs" x-text="rightFmt"></span>
+      </button>
+    </div>
+    <button type="button" @click="reset()" class="text-xs text-slate-500 underline w-full text-center">
+      Timer zurücksetzen
+    </button>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Links (Min.)</span>
+      <input type="number" name="duration_left_min" min="0" max="90" x-model="leftMin"
+             inputmode="numeric" placeholder="0"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Rechts (Min.)</span>
+      <input type="number" name="duration_right_min" min="0" max="90" x-model="rightMin"
+             inputmode="numeric" placeholder="0"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
+    </label>
+  </div>
+
+  {% else %}
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Typ</span>
+    <div class="grid grid-cols-4 gap-2 text-sm">
+      {% for val, lbl in bottle_types %}
+      <label class="cursor-pointer">
+        <input type="radio" name="bottle_type" value="{{ val }}" class="peer sr-only" {% if loop.first %}checked{% endif %}>
+        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Angeboten (ml)</span>
+      <input type="number" name="bottle_offered_ml" min="0" max="400" inputmode="numeric"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Getrunken (ml)</span>
+      <input type="number" name="bottle_taken_ml" min="0" max="400" inputmode="numeric"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
+    </label>
+  </div>
+  {% endif %}
+
+  <label class="flex items-center gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+    <input type="checkbox" name="spit_up" value="1" class="w-5 h-5">
+    <span class="text-sm">🤢 Hat gespuckt</span>
+  </label>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <input type="text" name="notes" maxlength="500"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+<script>
+  function feedTimer() {
+    return {
+      side: null,
+      leftSec: 0,
+      rightSec: 0,
+      lastTick: null,
+      timer: null,
+
+      get leftMin() { return Math.floor(this.leftSec / 60); },
+      set leftMin(v) { this.leftSec = (parseInt(v) || 0) * 60; },
+      get rightMin() { return Math.floor(this.rightSec / 60); },
+      set rightMin(v) { this.rightSec = (parseInt(v) || 0) * 60; },
+      get leftFmt() { return this.fmt(this.leftSec); },
+      get rightFmt() { return this.fmt(this.rightSec); },
+      get display() {
+        const cur = this.side === 'left' ? this.leftSec : this.side === 'right' ? this.rightSec : 0;
+        return this.fmt(cur);
+      },
+      fmt(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+      },
+      toggle(newSide) {
+        this.tick();
+        this.side = (this.side === newSide) ? null : newSide;
+        this.lastTick = Date.now();
+        if (this.side && !this.timer) this.timer = setInterval(() => this.tick(), 1000);
+        if (!this.side && this.timer) { clearInterval(this.timer); this.timer = null; }
+      },
+      tick() {
+        if (!this.side) return;
+        const now = Date.now();
+        const delta = Math.floor((now - (this.lastTick || now)) / 1000);
+        if (delta > 0) {
+          if (this.side === 'left') this.leftSec += delta;
+          else if (this.side === 'right') this.rightSec += delta;
+          this.lastTick = now;
+        }
+      },
+      reset() {
+        this.leftSec = 0; this.rightSec = 0; this.side = null;
+        if (this.timer) { clearInterval(this.timer); this.timer = null; }
+      }
+    };
+  }
+</script>
+
+{% endblock %}

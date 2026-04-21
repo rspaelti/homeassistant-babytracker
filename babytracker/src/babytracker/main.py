@@ -1,31 +1,37 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.middleware.base import BaseHTTPMiddleware
-
 from sqlmodel import Session, select
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings  # noqa: F401  # keep env/side effects
-from babytracker.db import engine
-from babytracker.models import Child
+from babytracker.db import engine, get_session
+from babytracker.models import Child, Measurement
+from babytracker.routes import diaper as diaper_routes
+from babytracker.routes import feed as feed_routes
 from babytracker.routes import growth as growth_routes
 from babytracker.routes import placeholders as placeholder_routes
+from babytracker.routes import quick as quick_routes
 from babytracker.routes import setup as setup_routes
+from babytracker.routes import sleep as sleep_routes
+from babytracker.services.daily import (
+    diaper_summary,
+    feed_summary,
+    format_ago,
+    format_duration,
+    sleep_summary,
+)
 
-
-def _current_child_name() -> str:
-    with Session(engine) as session:
-        child = session.exec(
-            select(Child).where(Child.active == True).order_by(Child.id)  # noqa: E712
-        ).first()
-    return child.name if child else "Baby"
+TZ = ZoneInfo(settings.timezone)
 
 
 class IngressPathMiddleware(BaseHTTPMiddleware):
@@ -41,6 +47,7 @@ class IngressPathMiddleware(BaseHTTPMiddleware):
         if ingress_path:
             request.scope["root_path"] = ingress_path
         return await call_next(request)
+
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -62,7 +69,30 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 app.include_router(growth_routes.router)
 app.include_router(setup_routes.router)
+app.include_router(feed_routes.router)
+app.include_router(diaper_routes.router)
+app.include_router(sleep_routes.router)
+app.include_router(quick_routes.router)
 app.include_router(placeholder_routes.router)
+
+
+def _age_label(birth_at: datetime) -> str:
+    now = datetime.now(TZ)
+    if birth_at.tzinfo is None:
+        birth_at = birth_at.replace(tzinfo=TZ)
+    delta = now - birth_at
+    days = int(delta.total_seconds() / 86400)
+    if days < 1:
+        hours = int(delta.total_seconds() / 3600)
+        return f"{hours} Stunden alt"
+    if days < 14:
+        return f"{days} Tage alt"
+    if days < 90:
+        weeks = days // 7
+        rest = days % 7
+        return f"{weeks} Wochen{f', {rest} Tage' if rest else ''} alt"
+    months = days // 30
+    return f"~{months} Monate alt"
 
 
 @app.get("/healthz")
@@ -74,13 +104,33 @@ async def healthz() -> JSONResponse:
 async def home(
     request: Request,
     user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
 ) -> HTMLResponse:
-    return templates.TemplateResponse(
-        request,
-        "home.html",
-        {
-            "user": user,
-            "version": __version__,
-            "child_name": _current_child_name(),
-        },
-    )
+    child = session.exec(
+        select(Child).where(Child.active == True).order_by(Child.id)  # noqa: E712
+    ).first()
+
+    ctx: dict = {
+        "user": user,
+        "version": __version__,
+        "child_name": child.name if child else "Baby",
+        "show_dashboard": bool(child),
+        "age_label": _age_label(child.birth_at) if child else None,
+        "format_ago": format_ago,
+        "format_duration": format_duration,
+    }
+
+    if child:
+        today = datetime.now(TZ).date()
+        ctx["feed_summary"] = feed_summary(session, child.id, today)
+        ctx["diaper_summary"] = diaper_summary(session, child.id, today)
+        ctx["sleep_summary"] = sleep_summary(session, child.id, today)
+
+        latest_w = session.exec(
+            select(Measurement)
+            .where(Measurement.child_id == child.id, Measurement.kind == "weight")
+            .order_by(Measurement.measured_at.desc())
+        ).first()
+        ctx["latest_weight"] = f"{int(latest_w.value)} g" if latest_w else None
+
+    return templates.TemplateResponse(request, "home.html", ctx)

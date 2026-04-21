@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}Schlaf · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-3">Schlaf</h1>
+
+{% if summary.active %}
+<form method="post" action="{{ root }}/sleep/stop" class="mb-4">
+  <div class="rounded-2xl border-2 border-brand bg-brand/10 p-4 text-center">
+    <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Schläft seit</div>
+    <div class="text-3xl font-bold mb-2">{{ format_ago(summary.active.started_at) }}</div>
+    {% if summary.active.location %}
+    <div class="text-sm text-slate-500 mb-3">📍 {{ locations[summary.active.location] or summary.active.location }}</div>
+    {% endif %}
+    <button type="submit" class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+      ⏹ Aufgewacht
+    </button>
+  </div>
+</form>
+{% else %}
+<form method="post" action="{{ root }}/sleep/start" class="mb-4" x-data="{ loc: '' }">
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">Wo schläft das Kind?</div>
+    <div class="grid grid-cols-3 gap-2 mb-3 text-sm">
+      {% for val, lbl in locations.items() %}
+      <label class="cursor-pointer">
+        <input type="radio" name="location" value="{{ val }}" class="peer sr-only" x-model="loc">
+        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit" class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+      ▶ Schläft jetzt
+    </button>
+  </div>
+</form>
+{% endif %}
+
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4">
+  <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">Heute</div>
+  <div class="grid grid-cols-2 gap-3 text-center">
+    <div>
+      <div class="text-2xl font-bold">{{ format_duration(summary.total_minutes) }}</div>
+      <div class="text-xs text-slate-500">Gesamt</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold">{{ summary.sessions }}</div>
+      <div class="text-xs text-slate-500">Einheiten</div>
+    </div>
+  </div>
+  {% if summary.last_ended_at %}
+  <div class="text-xs text-slate-500 mt-3 text-center">
+    Letztes Aufwachen: <span class="font-semibold">{{ format_ago(summary.last_ended_at) }}</span>
+  </div>
+  {% endif %}
+</div>
+
+<a href="{{ root }}/sleep/new" class="block text-center text-sm text-slate-500 mb-4 underline">
+  Nachträglich eintragen…
+</a>
+
+{% if recent %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
+<div class="space-y-2">
+  {% for s in recent %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-center justify-between">
+    <div>
+      <div class="font-semibold">
+        {% if s.ended_at %}
+          {% set mins = ((s.ended_at - s.started_at).total_seconds() / 60) | int %}
+          😴 {{ format_duration(mins) }}
+        {% else %}
+          💤 läuft seit {{ format_ago(s.started_at) }}
+        {% endif %}
+        {% if s.location %} · 📍 {{ locations[s.location] or s.location }}{% endif %}
+      </div>
+      <div class="text-xs text-slate-500">
+        {{ s.started_at.strftime('%d.%m. %H:%M') }}
+        {% if s.ended_at %} – {{ s.ended_at.strftime('%H:%M') }}{% endif %}
+      </div>
+      {% if s.notes %}<div class="text-xs text-slate-400 italic">{{ s.notes }}</div>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500">Noch keine Einträge.</p>
+{% endif %}
+
+{% endblock %}

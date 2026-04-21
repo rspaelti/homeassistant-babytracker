@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}Ernährung · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-3">Ernährung</h1>
+
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4">
+  <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">Heute</div>
+  <div class="grid grid-cols-3 gap-2 text-center">
+    <div>
+      <div class="text-2xl font-bold">{{ summary.count }}</div>
+      <div class="text-xs text-slate-500">Mahlzeiten</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold">{{ summary.breast_min }}</div>
+      <div class="text-xs text-slate-500">Stillen Min.</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold">{{ summary.bottle_ml }}</div>
+      <div class="text-xs text-slate-500">Flasche ml</div>
+    </div>
+  </div>
+  <div class="text-xs text-slate-500 mt-3 text-center">
+    Letzte: <span class="font-semibold">{{ format_ago(summary.last_at) }}</span>
+  </div>
+</div>
+
+<div class="grid grid-cols-2 gap-3 mb-6">
+  <a href="{{ root }}/feed/new?kind=breast"
+     class="rounded-2xl bg-brand text-white font-semibold py-5 text-center text-lg">
+    🤱 Stillen
+  </a>
+  <a href="{{ root }}/feed/new?kind=bottle"
+     class="rounded-2xl bg-brand text-white font-semibold py-5 text-center text-lg">
+    🍼 Flasche
+  </a>
+</div>
+
+{% if recent %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
+<div class="space-y-2">
+  {% for f in recent %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm">
+    <div class="flex items-center justify-between">
+      <div class="font-semibold">
+        {% if f.kind == 'breast' %}
+          🤱
+          {%- set total = (f.duration_left_min or 0) + (f.duration_right_min or 0) -%}
+          {% if total %} {{ total }} Min.{% endif %}
+          {% if f.duration_left_min and f.duration_right_min %} (L {{ f.duration_left_min }} / R {{ f.duration_right_min }})
+          {% elif f.duration_left_min %} (nur Links)
+          {% elif f.duration_right_min %} (nur Rechts){% endif %}
+        {% else %}
+          🍼 {{ f.bottle_taken_ml or 0 }} / {{ f.bottle_offered_ml or 0 }} ml
+          {% if f.bottle_type %} · {{ f.bottle_type }}{% endif %}
+        {% endif %}
+        {% if f.spit_up %} 🤢{% endif %}
+      </div>
+    </div>
+    <div class="text-xs text-slate-500">{{ f.started_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(f.started_at) }}</div>
+    {% if f.notes %}<div class="text-xs text-slate-400 italic">{{ f.notes }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500">Noch keine Einträge.</p>
+{% endif %}
+
+{% endblock %}

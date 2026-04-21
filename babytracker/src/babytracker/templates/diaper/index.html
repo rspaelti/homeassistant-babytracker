@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block title %}Windeln · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-3">Windeln</h1>
+
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4">
+  <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">Heute</div>
+  <div class="grid grid-cols-2 gap-3 text-center">
+    <div>
+      <div class="text-2xl font-bold">{{ summary.pees }} 💧</div>
+      <div class="text-xs text-slate-500">Pipi {% if summary.pees < 6 %}(Ziel: 6+){% endif %}</div>
+    </div>
+    <div>
+      <div class="text-2xl font-bold">{{ summary.stools }} 💩</div>
+      <div class="text-xs text-slate-500">Stuhl</div>
+    </div>
+  </div>
+  <div class="text-xs text-slate-500 mt-3 text-center">
+    Letzte: <span class="font-semibold">{{ format_ago(summary.last_at) }}</span>
+  </div>
+</div>
+
+<a href="{{ root }}/diaper/new"
+   class="block rounded-2xl bg-brand text-white font-semibold py-5 text-center text-lg mb-6">
+  + Neue Windel
+</a>
+
+{% if recent %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
+<div class="space-y-2">
+  {% for d in recent %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-center justify-between">
+    <div>
+      <div class="font-semibold">
+        {% if d.pee %}💧{% endif %}{% if d.stool %}💩{% endif %}
+        {% if d.stool and d.stool_color %} · {{ stool_colors[d.stool_color] }}{% endif %}
+        {% if d.stool and d.stool_consistency %} · {{ stool_consistency[d.stool_consistency] }}{% endif %}
+      </div>
+      <div class="text-xs text-slate-500">{{ d.changed_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(d.changed_at) }}</div>
+      {% if d.notes %}<div class="text-xs text-slate-400 italic">{{ d.notes }}</div>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500">Noch keine Einträge.</p>
+{% endif %}
+
+{% endblock %}

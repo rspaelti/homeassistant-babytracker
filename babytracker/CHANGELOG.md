@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — Phase 2: Alltag
+
+- **Stillen / Flasche** (`/feed`): Seitenwechsel-Timer für die Brust (links/rechts, live in JS), Flasche mit Typ + offered/taken ml, Erbrechen-Flag
+- **Windeln** (`/diaper`): Pipi/Stuhl-Auswahl, Farbe (gelb/grün/braun/schwarz/weiss/blutig), Konsistenz, Intensität, Pipi-Warnung wenn <6/Tag
+- **Schlaf** (`/sleep`): Start/Stop-Session mit Ortsauswahl, Live "schläft seit …", Tagesbilanz in Stunden, nachträgliches Eintragen
+- **Schnell-Eingabe-Hub** (`/quick`): 6 grosse Buttons für die häufigen Aktionen
+- **Home-Dashboard**: echte Tagesbilanz pro Kategorie mit "zuletzt vor …" und Alters-Label (z.B. "2 Tage alt")
+- **Daily-Service** (`services/daily.py`): aggregiert Feedings, Windeln, Schlaf pro Tag + Formatter für "vor X Min." und Dauer
+- **Tz-Helper**: `as_aware()` normalisiert tz-naive SQLite-Datetimes zu lokaler Zeitzone
+
 ## 0.1.9
 
 - Restore accidentally removed `settings.db_url` property (regression from 0.1.7)
