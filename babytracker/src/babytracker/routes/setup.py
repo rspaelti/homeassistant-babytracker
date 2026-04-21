@@ -29,13 +29,22 @@ async def setup_child_form(
     existing = session.exec(select(Child).where(Child.active == True)).first()  # noqa: E712
     now_local = datetime.now(TZ).strftime("%Y-%m-%dT%H:%M")
 
-    prefill = {
-        "name": settings.child_name or "",
-        "sex": settings.child_sex or "f",
-        "birth_at": settings.child_birth_at or now_local,
-        "birth_weight_g": settings.child_birth_weight_g or "",
-        "birth_length_cm": settings.child_birth_length_cm or "",
-    }
+    if existing:
+        prefill = {
+            "name": existing.name,
+            "sex": existing.sex,
+            "birth_at": existing.birth_at.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "birth_weight_g": existing.birth_weight_g or "",
+            "birth_length_cm": existing.birth_length_cm or "",
+        }
+    else:
+        prefill = {
+            "name": "",
+            "sex": "f",
+            "birth_at": now_local,
+            "birth_weight_g": "",
+            "birth_length_cm": "",
+        }
 
     return templates.TemplateResponse(
         request,

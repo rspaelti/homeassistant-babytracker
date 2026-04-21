@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- Fix setup form: prefill from DB (existing child) or defaults, not from removed settings
+
 ## 0.1.7
 
 - Remove child_* options from add-on config — setup is done in-app via `/setup/child`
