@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# SQLite (dev)
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+dev.sqlite3*
+dev-data/
+
+# Litestream
+litestream/
+
+# macOS
+.DS_Store
+._*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node (for Tailwind build later)
+node_modules/
+package-lock.json
+npm-debug.log
+
+# Build artifacts
+dist/
+build/
+*.tar.gz

@@ -1,0 +1,37 @@
+name: "Baby-Tracker"
+version: "0.1.1"
+slug: babytracker
+description: "Tracking für Wachstum (WHO-Perzentilen), Ernährung, Schlaf, Vitalwerte, Gesundheit und Wochenbett"
+url: "https://github.com/rspaelti/homeassistant-babytracker"
+arch:
+  - aarch64
+init: false
+ingress: true
+ingress_port: 8099
+ingress_stream: false
+panel_icon: mdi:baby-face-outline
+panel_title: "Baby"
+panel_admin: false
+homeassistant_api: true
+hassio_api: true
+auth_api: true
+map:
+  - share:rw
+options:
+  timezone: "Europe/Zurich"
+  owlet_entity_prefix: "sensor.dream_sock_"
+  log_level: "info"
+  child_name: ""
+  child_sex: "f"
+  child_birth_at: ""
+  child_birth_weight_g: 0
+  child_birth_length_cm: 0.0
+schema:
+  timezone: str
+  owlet_entity_prefix: str
+  log_level: list(debug|info|warning|error)?
+  child_name: str?
+  child_sex: list(f|m)?
+  child_birth_at: str?
+  child_birth_weight_g: int?
+  child_birth_length_cm: float?

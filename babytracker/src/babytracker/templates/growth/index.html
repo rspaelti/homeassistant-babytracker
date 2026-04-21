@@ -1,0 +1,150 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ label }} · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-3">
+  <h1 class="text-xl font-bold">Wachstum</h1>
+  <a href="/growth/new?kind={{ kind }}"
+     class="bg-brand text-white font-semibold px-3 py-1.5 rounded-lg text-sm">
+    + Messung
+  </a>
+</div>
+
+<div class="flex gap-2 mb-4 text-sm">
+  {% for k, lbl in kinds %}
+    <a href="/growth?kind={{ k }}"
+       class="px-3 py-1.5 rounded-lg border
+              {% if k == kind %}bg-brand text-white border-brand
+              {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+      {{ lbl }}
+    </a>
+  {% endfor %}
+</div>
+
+{% if latest %}
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4">
+  <div class="text-sm text-slate-500 dark:text-slate-400">Aktuell</div>
+  <div class="text-3xl font-bold">{{ display_value(kind, latest.value * (1000 if kind == 'weight' else 1)) }}</div>
+  <div class="mt-1 text-sm">
+    <span class="font-semibold">P{{ '%.0f' | format(latest.percentile) }}</span>
+    <span class="text-slate-500 dark:text-slate-400">· Z {{ '%+.2f' | format(latest.z) }}</span>
+    <span class="text-slate-500 dark:text-slate-400">· Tag {{ '%.0f' | format(latest.age_days) }}</span>
+  </div>
+</div>
+{% else %}
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4 text-slate-500">
+  Noch keine {{ label|lower }}-Messung erfasst.
+</div>
+{% endif %}
+
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 mb-4">
+  <canvas id="chart" height="300"></canvas>
+</div>
+
+{% if chart.points %}
+<h2 class="font-semibold mb-2 text-sm text-slate-500 uppercase tracking-wide">Messungen</h2>
+<div class="space-y-2">
+  {% for p in chart.points | reverse %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex items-center justify-between text-sm">
+    <div>
+      <div class="font-semibold">{{ display_value(kind, p.value * (1000 if kind == 'weight' else 1)) }}</div>
+      <div class="text-xs text-slate-500">{{ p.measured_at.strftime('%d.%m.%Y %H:%M') }} · {{ p.source }}</div>
+    </div>
+    <div class="text-right">
+      <div class="font-semibold">P{{ '%.0f' | format(p.percentile) }}</div>
+      <div class="text-xs text-slate-500">Z {{ '%+.2f' | format(p.z) }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<p class="text-xs text-slate-400 dark:text-slate-500 mt-6">
+  Wachstumsreferenz: WHO Child Growth Standards (0–5 Jahre).
+  Keine medizinische Bewertung – bei Unsicherheit Kinderarzt kontaktieren.
+</p>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    const ctx = document.getElementById('chart').getContext('2d');
+    const refDays = {{ chart.reference_days | tojson }};
+    const refLines = {{ chart.reference_lines | tojson }};
+    const points = [
+      {% for p in chart.points %}
+      { x: {{ p.age_days }}, y: {{ p.value }} },
+      {% endfor %}
+    ];
+
+    const dark = document.documentElement.classList.contains('dark');
+    const grid = dark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.15)';
+    const text = dark ? '#cbd5e1' : '#334155';
+
+    const refColors = {
+      3:  'rgba(244,114,182,0.55)',
+      15: 'rgba(251,191,36,0.55)',
+      50: 'rgba(34,197,94,0.75)',
+      85: 'rgba(251,191,36,0.55)',
+      97: 'rgba(244,114,182,0.55)',
+    };
+    const refDash = { 3: [2,4], 15: [4,4], 50: [], 85: [4,4], 97: [2,4] };
+
+    const refDatasets = Object.keys(refLines).map(p => ({
+      label: 'P' + p,
+      data: refDays.map((d, i) => ({ x: d, y: refLines[p][i] })),
+      borderColor: refColors[p],
+      borderWidth: p == 50 ? 2 : 1,
+      borderDash: refDash[p],
+      pointRadius: 0,
+      fill: false,
+      tension: 0.15,
+    }));
+
+    const myData = {
+      label: '{{ child_name }}',
+      data: points,
+      borderColor: '#f59e0b',
+      backgroundColor: '#f59e0b',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      showLine: true,
+      tension: 0.1,
+    };
+
+    new Chart(ctx, {
+      type: 'line',
+      data: { datasets: [...refDatasets, myData] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: 'linear',
+            title: { display: true, text: 'Alter (Tage)', color: text },
+            grid: { color: grid },
+            ticks: { color: text }
+          },
+          y: {
+            title: { display: true, text: '{{ unit }}', color: text },
+            grid: { color: grid },
+            ticks: { color: text }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: text, boxWidth: 20, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + ' {{ unit }}'
+            }
+          }
+        },
+        interaction: { mode: 'nearest', intersect: false },
+      }
+    });
+  })();
+</script>
+
+{% endblock %}

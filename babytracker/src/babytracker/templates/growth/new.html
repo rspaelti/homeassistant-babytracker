@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}Neue Messung · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="/growth?kind={{ kind }}" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-4">Neue {{ label }}-Messung</h1>
+
+<form method="post" action="/growth/new" class="space-y-4">
+  <input type="hidden" name="kind" value="{{ kind }}">
+
+  <div class="flex gap-2 text-sm">
+    {% for k, lbl in kinds %}
+      <a href="/growth/new?kind={{ k }}"
+         class="flex-1 text-center px-3 py-2 rounded-lg border
+                {% if k == kind %}bg-brand text-white border-brand
+                {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+        {{ lbl }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wert ({{ unit }})</span>
+    <input type="number" name="value" required
+           step="{{ '1' if kind == 'weight' else '0.1' }}"
+           min="{{ 500 if kind == 'weight' else (30 if kind == 'length' else 25) }}"
+           max="{{ 30000 if kind == 'weight' else (150 if kind == 'length' else 60) }}"
+           inputmode="decimal"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold"
+           placeholder="z.B. {{ '3820' if kind == 'weight' else ('55.0' if kind == 'length' else '35.0') }}">
+  </label>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
+    <input type="datetime-local" name="measured_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Quelle</span>
+    <div class="grid grid-cols-3 gap-2 text-sm">
+      {% for val, lbl in [('home', 'Zuhause'), ('doctor', 'Arzt'), ('hospital', 'Spital')] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="source" value="{{ val }}" class="peer sr-only" {% if loop.first %}checked{% endif %}>
+        <div class="text-center px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <input type="text" name="notes" maxlength="500"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}
