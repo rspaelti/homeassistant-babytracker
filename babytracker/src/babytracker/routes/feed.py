@@ -170,3 +170,21 @@ async def feed_create(
 
     root = request.scope.get("root_path", "")
     return RedirectResponse(url=f"{root}/feed", status_code=303)
+
+
+@router.post("/feed/{feed_id}/delete")
+async def feed_delete(
+    request: Request,
+    feed_id: int,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    f = session.get(Feeding, feed_id)
+    if f and f.child_id == child.id:
+        session.delete(f)
+        session.commit()
+    root = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{root}/feed", status_code=303)

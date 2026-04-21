@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- **Stuhlfarben als visuelle Kacheln** — 6 normale Farben (senfgelb → dunkelbraun + grün) und 5 auffällige (blass/weiss/grau/schwarz/blutig), angelehnt an die Stool Color Card für Gallengangatresie-Screening. Rote Warnbox bei Auswahl auffälliger Farbe.
+- **Löschen-Button** (🗑) auf allen Einträgen in Ernährung, Windeln, Schlaf und Wachstum. Bestätigungsdialog vor dem Löschen.
+- Hard-Delete (endgültig), mit Kind-ID-Prüfung für Sicherheit.
+
 ## 0.2.0 — Phase 2: Alltag
 
 - **Stillen / Flasche** (`/feed`): Seitenwechsel-Timer für die Brust (links/rechts, live in JS), Flasche mit Typ + offered/taken ml, Erbrechen-Flag

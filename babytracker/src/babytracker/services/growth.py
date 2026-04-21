@@ -38,6 +38,7 @@ def display_value(kind: str, value: float) -> str:
 
 @dataclass
 class ChartPoint:
+    id: int
     age_days: float
     value: float  # in WHO-Einheit (kg, cm)
     measured_at: datetime
@@ -76,6 +77,7 @@ def build_chart(
         z, p = evaluate(kind, child.sex, d, who_val)
         points.append(
             ChartPoint(
+                id=m.id,
                 age_days=d,
                 value=who_val,
                 measured_at=m.measured_at,

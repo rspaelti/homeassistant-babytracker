@@ -47,15 +47,18 @@
 <h2 class="font-semibold mb-2 text-sm text-slate-500 uppercase tracking-wide">Messungen</h2>
 <div class="space-y-2">
   {% for p in chart.points | reverse %}
-  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex items-center justify-between text-sm">
-    <div>
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex items-center justify-between text-sm gap-2">
+    <div class="flex-1 min-w-0">
       <div class="font-semibold">{{ display_value(kind, p.value * (1000 if kind == 'weight' else 1)) }}</div>
       <div class="text-xs text-slate-500">{{ p.measured_at.strftime('%d.%m.%Y %H:%M') }} · {{ p.source }}</div>
     </div>
-    <div class="text-right">
+    <div class="text-right shrink-0">
       <div class="font-semibold">P{{ '%.0f' | format(p.percentile) }}</div>
       <div class="text-xs text-slate-500">Z {{ '%+.2f' | format(p.z) }}</div>
     </div>
+    <form method="post" action="{{ root }}/growth/{{ p.id }}/delete" onsubmit="return confirm('Messung löschen?')" class="shrink-0">
+      <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+    </form>
   </div>
   {% endfor %}
 </div>

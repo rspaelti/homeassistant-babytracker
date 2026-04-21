@@ -125,6 +125,23 @@ async def sleep_stop(
     return _redirect_to_sleep(request)
 
 
+@router.post("/sleep/{sleep_id}/delete")
+async def sleep_delete(
+    request: Request,
+    sleep_id: int,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    s = session.get(SleepSession, sleep_id)
+    if s and s.child_id == child.id:
+        session.delete(s)
+        session.commit()
+    return _redirect_to_sleep(request)
+
+
 @router.get("/sleep/new", response_class=HTMLResponse)
 async def sleep_new(
     request: Request,

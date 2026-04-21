@@ -10,7 +10,7 @@
 
 <h1 class="text-xl font-bold mb-4">Neue Windel</h1>
 
-<form method="post" action="{{ root }}/diaper/new" class="space-y-4" x-data="{ pee: false, stool: false }">
+<form method="post" action="{{ root }}/diaper/new" class="space-y-4" x-data="{ pee: false, stool: false, color: '', colorStatus: '' }">
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
@@ -50,31 +50,67 @@
     </div>
   </div>
 
-  <div x-show="stool" class="space-y-2">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">Stuhl-Farbe</span>
-    <div class="grid grid-cols-3 gap-2 text-sm">
-      {% for val, lbl in stool_colors %}
-      <label class="cursor-pointer">
-        <input type="radio" name="stool_color" value="{{ val }}" class="peer sr-only">
-        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
-                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
-          {{ lbl }}
-        </div>
-      </label>
-      {% endfor %}
+  <div x-show="stool" class="space-y-3">
+
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Stuhl-Farbe</span>
+        <span class="text-xs text-emerald-700 dark:text-emerald-400 font-medium">✓ Normal</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        {% for val, meta in normal_colors %}
+        <label class="cursor-pointer">
+          <input type="radio" name="stool_color" value="{{ val }}" class="peer sr-only"
+                 @change="color='{{ val }}'; colorStatus='{{ meta.status }}'">
+          <div class="rounded-xl border-2 border-slate-300 dark:border-slate-700 overflow-hidden
+                      peer-checked:ring-4 peer-checked:ring-emerald-400 peer-checked:border-emerald-500">
+            <div class="h-12" style="background:{{ meta.hex }}"></div>
+            <div class="text-xs text-center py-1 px-1 bg-white dark:bg-slate-900">{{ meta.label }}</div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
     </div>
 
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block pt-2">Konsistenz</span>
-    <div class="grid grid-cols-4 gap-2 text-sm">
-      {% for val, lbl in stool_consistency %}
-      <label class="cursor-pointer">
-        <input type="radio" name="stool_consistency" value="{{ val }}" class="peer sr-only">
-        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
-                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
-          {{ lbl }}
-        </div>
-      </label>
-      {% endfor %}
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Auffällig</span>
+        <span class="text-xs text-rose-600 dark:text-rose-400 font-medium">⚠ Arzt konsultieren</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        {% for val, meta in warn_colors %}
+        <label class="cursor-pointer">
+          <input type="radio" name="stool_color" value="{{ val }}" class="peer sr-only"
+                 @change="color='{{ val }}'; colorStatus='{{ meta.status }}'">
+          <div class="rounded-xl border-2 border-slate-300 dark:border-slate-700 overflow-hidden
+                      peer-checked:ring-4 peer-checked:ring-rose-500 peer-checked:border-rose-500">
+            <div class="h-12" style="background:{{ meta.hex }}"></div>
+            <div class="text-xs text-center py-1 px-1 bg-white dark:bg-slate-900">{{ meta.label }}</div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div x-show="colorStatus === 'warn' || colorStatus === 'critical'" x-cloak
+         class="rounded-xl border-2 border-rose-500 bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-900 dark:text-rose-200">
+      <strong>⚠ Hinweis:</strong> Diese Farbe kann auf ein Problem hinweisen (z.B. Gallengangatresie bei blass/weiss/grau).
+      Bitte zeitnah mit dem Kinderarzt besprechen. Bei <em>blutig</em> sofort.
+    </div>
+
+    <div>
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Konsistenz</span>
+      <div class="grid grid-cols-4 gap-2 text-sm">
+        {% for val, lbl in stool_consistency %}
+        <label class="cursor-pointer">
+          <input type="radio" name="stool_consistency" value="{{ val }}" class="peer sr-only">
+          <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                      peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+            {{ lbl }}
+          </div>
+        </label>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
@@ -89,5 +125,7 @@
     Speichern
   </button>
 </form>
+
+<style>[x-cloak] { display: none !important; }</style>
 
 {% endblock %}

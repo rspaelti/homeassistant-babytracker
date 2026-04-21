@@ -147,3 +147,24 @@ async def growth_create(
     session.commit()
 
     return RedirectResponse(url=f"{request.scope.get('root_path', '')}/growth?kind={kind}", status_code=303)
+
+
+@router.post("/growth/{measurement_id}/delete")
+async def growth_delete(
+    request: Request,
+    measurement_id: int,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+):
+    child = _get_child(session)
+    if not child:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/setup/child", status_code=303)
+    m = session.get(Measurement, measurement_id)
+    kind = "weight"
+    if m and m.child_id == child.id:
+        kind = m.kind
+        session.delete(m)
+        session.commit()
+    root = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{root}/growth?kind={kind}", status_code=303)

@@ -32,16 +32,29 @@
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
 <div class="space-y-2">
   {% for d in recent %}
-  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-center justify-between">
-    <div>
-      <div class="font-semibold">
-        {% if d.pee %}💧{% endif %}{% if d.stool %}💩{% endif %}
-        {% if d.stool and d.stool_color %} · {{ stool_colors[d.stool_color] }}{% endif %}
-        {% if d.stool and d.stool_consistency %} · {{ stool_consistency[d.stool_consistency] }}{% endif %}
+  {% set color_meta = stool_colors_meta.get(d.stool_color) if d.stool_color else None %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-center justify-between gap-2">
+    <div class="flex items-center gap-3 flex-1 min-w-0">
+      {% if color_meta %}
+      <div class="shrink-0 w-8 h-8 rounded-full border border-slate-300 dark:border-slate-600" style="background:{{ color_meta.hex }}"></div>
+      {% else %}
+      <div class="shrink-0 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+        {% if d.pee and not d.stool %}💧{% elif d.stool and not d.pee %}💩{% else %}💧💩{% endif %}
       </div>
-      <div class="text-xs text-slate-500">{{ d.changed_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(d.changed_at) }}</div>
-      {% if d.notes %}<div class="text-xs text-slate-400 italic">{{ d.notes }}</div>{% endif %}
+      {% endif %}
+      <div class="min-w-0">
+        <div class="font-semibold truncate">
+          {% if d.pee %}Pipi{% if d.stool %} + {% endif %}{% endif %}{% if d.stool %}Stuhl{% endif %}
+          {% if color_meta %} · {{ color_meta.label }}{% endif %}
+          {% if d.stool and d.stool_consistency %} · {{ stool_consistency[d.stool_consistency] }}{% endif %}
+        </div>
+        <div class="text-xs text-slate-500">{{ d.changed_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(d.changed_at) }}</div>
+        {% if d.notes %}<div class="text-xs text-slate-400 italic truncate">{{ d.notes }}</div>{% endif %}
+      </div>
     </div>
+    <form method="post" action="{{ root }}/diaper/{{ d.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
+      <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+    </form>
   </div>
   {% endfor %}
 </div>
