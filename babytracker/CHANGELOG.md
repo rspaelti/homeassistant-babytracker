@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Remove obsolete `COPY scripts/` from Dockerfile (scripts are inside `src/babytracker/scripts/`)
+
 ## 0.1.2
 
 - Base image pinned to `3.12-alpine3.18` (3.12-alpine3.20 does not exist upstream)
