@@ -1,5 +1,5 @@
 build_from:
-  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.12-alpine3.20
+  aarch64: ghcr.io/home-assistant/aarch64-base-python:3.12-alpine3.18
 labels:
   org.opencontainers.image.title: "Baby-Tracker"
   org.opencontainers.image.source: "https://github.com/rspaelti/homeassistant-babytracker"

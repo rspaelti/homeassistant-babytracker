@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Base image pinned to `3.12-alpine3.18` (3.12-alpine3.20 does not exist upstream)
+
 ## 0.1.1
 
 - Seed-Daten des Kindes jetzt über Add-on-Konfiguration statt hardcoded
