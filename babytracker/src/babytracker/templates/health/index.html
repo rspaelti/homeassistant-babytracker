@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+
+{% block title %}Gesundheit · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-3">Gesundheit</h1>
+
+{% if last_temp %}
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4">
+  <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Letzte Temperatur</div>
+  <div class="flex items-baseline gap-3">
+    <span class="text-3xl font-bold">{{ '%.1f' | format(last_temp.value) }} °C</span>
+    <span class="text-sm text-slate-500">{{ format_ago(last_temp.measured_at) }}</span>
+  </div>
+  {% if last_temp.value >= fever_threshold %}
+  <div class="mt-2 text-sm font-medium text-rose-600">⚠ Fieber. {{ fever_label }}</div>
+  {% else %}
+  <div class="mt-1 text-xs text-slate-400">{{ fever_label }}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Schnell erfassen</h2>
+<div class="grid grid-cols-2 gap-2 mb-5">
+  {% for cat_key, cat_label, cat_type in categories %}
+  <a href="{{ root }}/health/new?category={{ cat_key }}"
+     class="rounded-xl border-2 border-brand bg-white dark:bg-slate-900 text-center py-5 font-semibold">
+    {{ cat_label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if recent_temps %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Temperaturen</h2>
+<div class="space-y-2 mb-4">
+  {% for t in recent_temps %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-center justify-between gap-2">
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold {% if t.value >= fever_threshold %}text-rose-600{% endif %}">
+        🌡️ {{ '%.1f' | format(t.value) }} °C
+        {% if t.value >= fever_threshold %} ⚠{% endif %}
+      </div>
+      <div class="text-xs text-slate-500">{{ t.measured_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(t.measured_at) }}</div>
+    </div>
+    <form method="post" action="{{ root }}/health/temp/{{ t.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
+      <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if recent_events %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Ereignisse</h2>
+<div class="space-y-2">
+  {% for e in recent_events %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-start justify-between gap-2">
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold">
+        {% if e.category == 'jaundice' %}
+          🟡 Ikterus · Stufe {{ e.score }}{% if e.score is not none %} ({{ jaundice_levels[e.score] }}){% endif %}
+        {% elif e.category == 'umbilical' %}
+          🩹 Nabel · {{ umbilical_status[e.status] if e.status else '–' }}
+        {% elif e.category == 'skin' %}
+          🧴 Haut · {{ skin_status[e.status] if e.status else '–' }}
+        {% elif e.category == 'crying' %}
+          😭 Schreiphase
+        {% else %}
+          {{ e.category }}
+        {% endif %}
+      </div>
+      <div class="text-xs text-slate-500">{{ e.recorded_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(e.recorded_at) }}</div>
+      {% if e.notes %}<div class="text-xs text-slate-400 italic truncate">{{ e.notes }}</div>{% endif %}
+    </div>
+    <form method="post" action="{{ root }}/health/event/{{ e.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
+      <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not recent_events and not recent_temps %}
+<p class="text-sm text-slate-500">Noch keine Einträge.</p>
+{% endif %}
+
+{% endblock %}

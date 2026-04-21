@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — Phase 3a+3b: Gesundheit & Medikamente
+
+- **Gesundheit** (`/health`): Hub mit Schnelleingabe-Kacheln
+- **Temperatur** mit altersabhängiger Fieber-Schwelle (<3 Mt: 37.5 °C, 3–6 Mt: 38 °C, >6 Mt: 38.5 °C) und roter Warnung live beim Eintippen
+- **Ikterus-Stufen 0–3** mit visueller Farbskala (grün→rot)
+- **Nabel-Status** (feucht/trocken/abgefallen/gerötet/Sekret)
+- **Haut-Status** (ok/Wunde/Ausschlag/Windelrose)
+- **Schreiphasen** (einfache Zeit + Notiz)
+- **Medikamente** (`/meds`): Presets für Vit D 400 IE / Vit K 2 mg / Paracetamol, Ein-Klick "Jetzt geben" für Vit D, Heute-Status prominent
+- **Home-Dashboard** erweitert: Gesundheits-Kachel (letzte Temperatur) + Vit-D-Status (heute ausstehend/gegeben)
+- **Schnell-Eingabe** um Temperatur + Medikament erweitert
+- Löschen auf allen neuen Kategorien
+
 ## 0.2.1
 
 - **Stuhlfarben als visuelle Kacheln** — 6 normale Farben (senfgelb → dunkelbraun + grün) und 5 auffällige (blass/weiss/grau/schwarz/blutig), angelehnt an die Stool Color Card für Gallengangatresie-Screening. Rote Warnbox bei Auswahl auffälliger Farbe.

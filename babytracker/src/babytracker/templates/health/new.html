@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ category_label }} · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/health" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-4">{{ category_label }}</h1>
+
+<div class="flex gap-1 mb-4 text-xs overflow-x-auto">
+  {% for cat_key, cat_label, _ in categories %}
+  <a href="{{ root }}/health/new?category={{ cat_key }}"
+     class="shrink-0 px-3 py-2 rounded-lg border whitespace-nowrap
+            {% if cat_key == category %}bg-brand text-white border-brand
+            {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+    {{ cat_label }}
+  </a>
+  {% endfor %}
+</div>
+
+<form method="post" action="{{ root }}/health/new" class="space-y-4" x-data="{ tempVal: 37.0 }">
+  <input type="hidden" name="category" value="{{ category }}">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
+    <input type="datetime-local" name="recorded_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  {% if category == 'temp' %}
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Temperatur (°C)</span>
+    <input type="number" name="temp_value" step="0.1" min="34" max="42" required
+           x-model.number="tempVal" inputmode="decimal"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-2xl font-semibold text-center">
+  </label>
+  <div x-show="tempVal >= {{ fever_threshold }}"
+       class="rounded-xl border-2 border-rose-500 bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-900 dark:text-rose-200">
+    <strong>⚠ Fieber:</strong> {{ fever_label }}
+  </div>
+  <div x-show="tempVal < {{ fever_threshold }}" class="text-xs text-slate-400">
+    Grenzwert aktuell: {{ fever_threshold }} °C — {{ fever_label }}
+  </div>
+
+  {% elif category == 'jaundice' %}
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">Ikterus-Stufe</span>
+    <div class="grid grid-cols-4 gap-2 text-sm">
+      {% for lvl, label, color in jaundice_levels %}
+      <label class="cursor-pointer">
+        <input type="radio" name="score" value="{{ lvl }}" required class="peer sr-only">
+        <div class="text-center rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden
+                    peer-checked:ring-4 peer-checked:ring-brand peer-checked:border-brand">
+          <div class="h-8 {{ color }}"></div>
+          <div class="py-2 text-xs">{{ lvl }}<br>{{ label }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    <p class="text-xs text-slate-400 mt-2">0 = keine sichtbare Gelbfärbung · 3 = Ganzkörper → Kinderarzt</p>
+  </div>
+
+  {% elif category == 'umbilical' %}
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Nabel-Status</span>
+    <div class="grid grid-cols-3 gap-2 text-sm">
+      {% for val, lbl in umbilical_status %}
+      <label class="cursor-pointer">
+        <input type="radio" name="status_value" value="{{ val }}" required class="peer sr-only">
+        <div class="text-center px-2 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    <p class="text-xs text-slate-400 mt-2">Bei Rötung/Sekret/Blutung → Hebamme / Kinderarzt</p>
+  </div>
+
+  {% elif category == 'skin' %}
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Hautzustand</span>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      {% for val, lbl in skin_status %}
+      <label class="cursor-pointer">
+        <input type="radio" name="status_value" value="{{ val }}" required class="peer sr-only">
+        <div class="text-center px-3 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% elif category == 'crying' %}
+  <p class="text-sm text-slate-500">Nur Zeitpunkt und Notiz erfassen.</p>
+  {% endif %}
+
+  {% if category != 'temp' %}
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <textarea name="notes" maxlength="1000" rows="3"
+              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"></textarea>
+  </label>
+  {% endif %}
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}

@@ -74,6 +74,34 @@
     </div>
   </a>
 
+  <a href="{{ root }}/health" class="block rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500 uppercase tracking-wide">🌡️ Gesundheit</div>
+        <div class="text-lg font-semibold mt-1">
+          {% if latest_temp %}{{ '%.1f' | format(latest_temp.value) }} °C {% else %}–{% endif %}
+        </div>
+      </div>
+      <div class="text-right text-sm text-slate-500">
+        {% if latest_temp %}{{ format_ago(latest_temp.measured_at) }}{% else %}kein Eintrag{% endif %}
+      </div>
+    </div>
+  </a>
+
+  <a href="{{ root }}/meds" class="block rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500 uppercase tracking-wide">💊 Vitamin D heute</div>
+        <div class="text-lg font-semibold mt-1">
+          {% if vit_d_done %}✓ gegeben{% else %}ausstehend{% endif %}
+        </div>
+      </div>
+      <div class="text-right text-sm {% if not vit_d_done %}text-amber-600{% else %}text-slate-500{% endif %}">
+        {% if not vit_d_done %}⚠ heute{% else %}ok{% endif %}
+      </div>
+    </div>
+  </a>
+
 </div>
 
 <a href="{{ root }}/quick"

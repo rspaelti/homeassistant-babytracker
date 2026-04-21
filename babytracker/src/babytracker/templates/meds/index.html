@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block title %}Medikamente · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-3">Medikamente</h1>
+
+<div class="rounded-2xl border-2 {% if vit_d_done %}border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20{% else %}border-amber-500 bg-amber-50 dark:bg-amber-900/20{% endif %} p-4 mb-4">
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <div class="text-xs uppercase tracking-wide mb-1 {% if vit_d_done %}text-emerald-700 dark:text-emerald-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">
+        Vitamin D heute
+      </div>
+      <div class="text-lg font-semibold">
+        {% if vit_d_done %}✓ bereits gegeben{% else %}Noch ausstehend{% endif %}
+      </div>
+    </div>
+    {% if not vit_d_done %}
+    <form method="post" action="{{ root }}/meds/quick/vitamin_d">
+      <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-semibold px-5 py-3 rounded-xl">
+        💊 Jetzt geben
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Presets</h2>
+<div class="grid grid-cols-1 gap-2 mb-5">
+  {% for p in presets %}
+  <a href="{{ root }}/meds/new?preset={{ p.name }}"
+     class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 flex items-center justify-between">
+    <div>
+      <div class="font-semibold">{{ p.label }} · {{ p.dose }} {{ p.unit }}</div>
+      <div class="text-xs text-slate-500">{{ p.note }}</div>
+    </div>
+    <span class="text-slate-400">›</span>
+  </a>
+  {% endfor %}
+  <a href="{{ root }}/meds/new"
+     class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-center text-sm text-slate-500">
+    + Anderes Medikament
+  </a>
+</div>
+
+{% if recent %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
+<div class="space-y-2">
+  {% for m in recent %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-start justify-between gap-2">
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold">💊 {{ m.med_name }} · {{ m.dose_value }} {{ m.dose_unit }} · {{ m.route }}</div>
+      <div class="text-xs text-slate-500">{{ m.given_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(m.given_at) }}</div>
+      {% if m.notes %}<div class="text-xs text-slate-400 italic truncate">{{ m.notes }}</div>{% endif %}
+    </div>
+    <form method="post" action="{{ root }}/meds/{{ m.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
+      <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-sm text-slate-500">Noch keine Einträge.</p>
+{% endif %}
+
+{% endblock %}

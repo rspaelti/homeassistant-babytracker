@@ -15,10 +15,12 @@ from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings  # noqa: F401  # keep env/side effects
 from babytracker.db import engine, get_session
-from babytracker.models import Child, Measurement
+from babytracker.models import Child, Measurement, Medication, Vital
 from babytracker.routes import diaper as diaper_routes
 from babytracker.routes import feed as feed_routes
 from babytracker.routes import growth as growth_routes
+from babytracker.routes import health as health_routes
+from babytracker.routes import meds as meds_routes
 from babytracker.routes import placeholders as placeholder_routes
 from babytracker.routes import quick as quick_routes
 from babytracker.routes import setup as setup_routes
@@ -72,6 +74,8 @@ app.include_router(setup_routes.router)
 app.include_router(feed_routes.router)
 app.include_router(diaper_routes.router)
 app.include_router(sleep_routes.router)
+app.include_router(health_routes.router)
+app.include_router(meds_routes.router)
 app.include_router(quick_routes.router)
 app.include_router(placeholder_routes.router)
 
@@ -132,5 +136,26 @@ async def home(
             .order_by(Measurement.measured_at.desc())
         ).first()
         ctx["latest_weight"] = f"{int(latest_w.value)} g" if latest_w else None
+
+        latest_temp = session.exec(
+            select(Vital)
+            .where(Vital.child_id == child.id, Vital.kind == "temp_body")
+            .order_by(Vital.measured_at.desc())
+        ).first()
+        ctx["latest_temp"] = latest_temp
+
+        from babytracker.services.daily import day_bounds_utc
+        start_d, end_d = day_bounds_utc(today)
+        vit_d_today = session.exec(
+            select(Medication)
+            .where(
+                Medication.child_id == child.id,
+                Medication.med_name == "vitamin_d",
+                Medication.given_at >= start_d,
+                Medication.given_at < end_d,
+            )
+            .limit(1)
+        ).first()
+        ctx["vit_d_done"] = bool(vit_d_today)
 
     return templates.TemplateResponse(request, "home.html", ctx)
