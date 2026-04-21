@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     ingress: bool = False
     dev_user: str | None = None
 
+    @property
+    def db_url(self) -> str:
+        return f"sqlite:///{self.db_path}"
+
 
 settings = Settings()
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.9
+
+- Restore accidentally removed `settings.db_url` property (regression from 0.1.7)
+
 ## 0.1.8
 
 - Fix setup form: prefill from DB (existing child) or defaults, not from removed settings
