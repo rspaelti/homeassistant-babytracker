@@ -9,6 +9,7 @@ export BT_WHO_DIR=/app/data/who
 export BT_TIMEZONE="$(bashio::config 'timezone')"
 export BT_OWLET_PREFIX="$(bashio::config 'owlet_entity_prefix')"
 export BT_LOG_LEVEL="$(bashio::config 'log_level')"
+export BT_NOTIFY_SERVICE="$(bashio::config 'notify_service')"
 export BT_HA_URL="http://supervisor/core"
 export BT_HA_TOKEN="${SUPERVISOR_TOKEN}"
 export BT_INGRESS=1

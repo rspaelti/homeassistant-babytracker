@@ -15,6 +15,7 @@ from babytracker.models.photo import Photo
 from babytracker.models.sleep import SleepSession
 from babytracker.models.user import User
 from babytracker.models.vitals import Vital
+from babytracker.models.warning_state import WarningState
 from babytracker.models.who_lms import WhoLms
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "SleepSession",
     "User",
     "Vital",
+    "WarningState",
     "WhoLms",
 ]

@@ -15,7 +15,7 @@ from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings  # noqa: F401  # keep env/side effects
 from babytracker.db import engine, get_session
-from babytracker.models import Child, Measurement, Medication, Vital
+from babytracker.models import Child, Measurement, Medication, Vital, WarningState
 from babytracker.routes import diaper as diaper_routes
 from babytracker.routes import feed as feed_routes
 from babytracker.routes import growth as growth_routes
@@ -25,6 +25,8 @@ from babytracker.routes import placeholders as placeholder_routes
 from babytracker.routes import quick as quick_routes
 from babytracker.routes import setup as setup_routes
 from babytracker.routes import sleep as sleep_routes
+from babytracker.routes import warnings as warnings_routes
+from babytracker.scheduler import start_scheduler, stop_scheduler
 from babytracker.services.daily import (
     diaper_summary,
     feed_summary,
@@ -77,7 +79,18 @@ app.include_router(sleep_routes.router)
 app.include_router(health_routes.router)
 app.include_router(meds_routes.router)
 app.include_router(quick_routes.router)
+app.include_router(warnings_routes.router)
 app.include_router(placeholder_routes.router)
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    stop_scheduler()
 
 
 def _age_label(birth_at: datetime) -> str:
@@ -157,5 +170,9 @@ async def home(
             .limit(1)
         ).first()
         ctx["vit_d_done"] = bool(vit_d_today)
+
+        ctx["active_warnings"] = session.exec(
+            select(WarningState).where(WarningState.active == True)  # noqa: E712
+        ).all()
 
     return templates.TemplateResponse(request, "home.html", ctx)

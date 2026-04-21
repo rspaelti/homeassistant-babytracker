@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     timezone: str = "Europe/Zurich"
     owlet_prefix: str = "sensor.dream_sock_"
     log_level: str = "info"
+    notify_service: str = ""  # z.B. "mobile_app_renes_iphone"; leer = keine Push
 
     ha_url: str | None = None
     ha_token: str | None = None

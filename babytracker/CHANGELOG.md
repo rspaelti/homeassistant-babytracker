@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 — Phase 3d: Alarm-Service + HA-Notifications
+
+- **Neue Warnungs-Engine** (`services/warnings.py`) mit 5 Regeln:
+  - `weight_loss_10`: Gewichtsverlust >10 % vom Geburtsgewicht (Tag 1–14)
+  - `fever`: altersabhängige Fieber-Schwelle überschritten (<3 Mt: 37.5 / 3–6 Mt: 38 / >6 Mt: 38.5 °C)
+  - `low_pees`: <6 Pipi heute ab Tag 5 (nur abends ab 18 Uhr)
+  - `no_feed_4h`: >4h keine Mahlzeit (nur tagsüber 7–22 Uhr)
+  - `percentile_jump`: ΔZ >2 zwischen zwei letzten Gewichtsmessungen
+- **APScheduler** prüft alle 5 Min. automatisch
+- **HA-Notifications** via `notify.mobile_app_*` Service. Neue Config-Option `notify_service` (leer = nur UI, keine Push). Critical-Flag setzt iOS Critical Alert.
+- **Neue Tabelle `warning_states`** speichert aktiv/inaktiv + Debouncing (gleiche Warnung wird frühestens alle 6h erneut gepusht)
+- **Neue Seite `/warnings`** mit aktiven Warnungen + Verlauf
+- **Home-Dashboard** zeigt aktive Warnungen oben (rot = critical, amber = warn)
+- Neue DB-Migration
+
 ## 0.3.0 — Phase 3a+3b: Gesundheit & Medikamente
 
 - **Gesundheit** (`/health`): Hub mit Schnelleingabe-Kacheln
