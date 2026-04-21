@@ -47,6 +47,6 @@ async def home(
         {
             "user": user,
             "version": __version__,
-            "child_name": settings.default_child,
+            "child_name": settings.child_display_name,
         },
     )

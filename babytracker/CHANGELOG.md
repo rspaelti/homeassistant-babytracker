@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Fix AttributeError on home page: `settings.default_child` was renamed to `settings.child_display_name` during sanitisation but home route still referenced the old name
+
 ## 0.1.3
 
 - Remove obsolete `COPY scripts/` from Dockerfile (scripts are inside `src/babytracker/scripts/`)
