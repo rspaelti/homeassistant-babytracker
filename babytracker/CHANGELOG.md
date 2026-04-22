@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Fix: fehlende `routes/more.py` für den /more-Hub nachgereicht (v0.4.1 hätte beim Start gecrasht)
+
 ## 0.4.1
 
 - Fieber-Schwelle für <3 Monate auf **38.0 °C** angehoben (bisher 37.5) — gemäss Kinderarzt-Empfehlung (sofort Arzt/Notfall ab 38 °C). Gilt im Warnings-Check und im Live-Input-Formular.
