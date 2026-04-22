@@ -62,10 +62,10 @@ def _redirect_to_health(request: Request) -> RedirectResponse:
 def _fever_threshold_info(child_age_days: int) -> tuple[float, str]:
     """Gibt (threshold_celsius, label) für Fieber-Warnung."""
     if child_age_days < 90:
-        return 37.5, "<3 Monate: >37.5 °C = sofort Arzt"
+        return 38.0, "<3 Monate: ≥ 38 °C = sofort Arzt / Notfall"
     if child_age_days < 180:
-        return 38.0, "3–6 Monate: >38 °C = Arzt"
-    return 38.5, ">6 Monate: >38.5 °C = Arzt"
+        return 38.0, "3–6 Monate: ≥ 38 °C = Arzt"
+    return 38.5, ">6 Monate: ≥ 38.5 °C = Arzt"
 
 
 @router.get("/health", response_class=HTMLResponse)

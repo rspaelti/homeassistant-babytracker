@@ -38,8 +38,9 @@ def _age_days(child: Child, now: datetime) -> int:
 
 
 def _fever_threshold(age_days: int) -> float:
+    # Kinderarzt-Empfehlung: <3 Monate → ab 38.0 °C sofort Arzt/Notfall.
     if age_days < 90:
-        return 37.5
+        return 38.0
     if age_days < 180:
         return 38.0
     return 38.5

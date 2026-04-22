@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Fieber-Schwelle für <3 Monate auf **38.0 °C** angehoben (bisher 37.5) — gemäss Kinderarzt-Empfehlung (sofort Arzt/Notfall ab 38 °C). Gilt im Warnings-Check und im Live-Input-Formular.
+- "Mehr"-Footer-Eintrag zeigt jetzt einen echten **Hub** (`/more`) mit Links zu Warnungen, Gesundheit, Medikamente, Kind bearbeiten, Mama (Phase 4), Einstellungen (Phase 3+).
+- Aktive Warnungen werden im Mehr-Hub als **roter Badge mit Anzahl** neben "Warnungen" angezeigt.
+
 ## 0.4.0 — Phase 3d: Alarm-Service + HA-Notifications
 
 - **Neue Warnungs-Engine** (`services/warnings.py`) mit 5 Regeln:
