@@ -54,7 +54,7 @@ async def feed_index(
     now = datetime.now(TZ)
     est = estimate_feed_interval(session, child, now)
     next_in_min: int | None = None
-    if summary.last_at:
+    if summary.last_at and summary.last_at <= now:
         from_last = (now - summary.last_at).total_seconds() / 3600
         next_in_min = int((est.hours - from_last) * 60)
 
@@ -139,6 +139,10 @@ async def feed_create(
         dt = parse_local_datetime(started_at)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
+
+    now = datetime.now(TZ)
+    if dt > now:
+        raise HTTPException(status_code=400, detail=f"Startzeit liegt in der Zukunft: {dt}")
 
     feed = Feeding(
         child_id=child.id,

@@ -224,8 +224,9 @@ async def home(
         ctx["feed_interval_hours"] = est.hours
         ctx["feed_interval_base"] = est.base_hours
         ctx["feed_interval_reasons"] = est.reasons
-        if ctx["feed_summary"].last_at:
-            from_last = (now - ctx["feed_summary"].last_at).total_seconds() / 3600
+        last_at = ctx["feed_summary"].last_at
+        if last_at and last_at <= now:
+            from_last = (now - last_at).total_seconds() / 3600
             ctx["feed_next_in_min"] = int((est.hours - from_last) * 60)
         else:
             ctx["feed_next_in_min"] = None
