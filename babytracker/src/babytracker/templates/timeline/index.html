@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+
+{% block title %}Tagesverlauf · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-3">
+  <h1 class="text-xl font-bold">Tagesverlauf</h1>
+  <a href="{{ root }}/notes/new"
+     class="bg-brand text-white text-sm font-semibold px-3 py-1.5 rounded-lg">+ Notiz</a>
+</div>
+
+<div class="flex gap-2 mb-4 text-sm overflow-x-auto">
+  <a href="{{ root }}/timeline?range=today"
+     class="shrink-0 px-3 py-1.5 rounded-lg border
+            {% if range == 'today' %}bg-brand text-white border-brand
+            {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+    Heute
+  </a>
+  <a href="{{ root }}/timeline?range=yesterday"
+     class="shrink-0 px-3 py-1.5 rounded-lg border
+            {% if range == 'yesterday' %}bg-brand text-white border-brand
+            {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+    Gestern
+  </a>
+  <a href="{{ root }}/timeline?range=7d"
+     class="shrink-0 px-3 py-1.5 rounded-lg border
+            {% if range == '7d' %}bg-brand text-white border-brand
+            {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
+    7 Tage
+  </a>
+  <form method="get" action="{{ root }}/timeline" class="flex gap-1 shrink-0">
+    <input type="hidden" name="range" value="day">
+    <input type="date" name="date" value="{{ date or today_iso }}"
+           class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm">
+    <button type="submit"
+            class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">›</button>
+  </form>
+</div>
+
+<p class="text-xs text-slate-500 mb-3">{{ label }} · {{ count }} Ereignis{{ 'se' if count != 1 else '' }}</p>
+
+<div class="print-container">
+
+{% for day_key, events in grouped %}
+<div class="mb-5">
+  <div class="text-xs text-slate-500 uppercase tracking-wide mb-2 sticky top-14 bg-slate-50 dark:bg-slate-950 py-1">
+    {{ day_key }}
+  </div>
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+    {% for e in events %}
+    <div class="flex gap-3 p-3 text-sm">
+      <div class="shrink-0 w-12 text-xs text-slate-500 font-mono pt-0.5">
+        {{ e.when.strftime('%H:%M') }}
+      </div>
+      <div class="shrink-0 text-xl leading-5">{{ e.icon }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold {{ e.extra_class }}">{{ e.title }}</div>
+        {% if e.detail %}<div class="text-xs text-slate-600 dark:text-slate-400 break-words">{{ e.detail }}</div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm text-slate-500 text-center">
+  Keine Einträge in diesem Zeitraum.
+</div>
+{% endfor %}
+
+</div>
+
+<div class="mt-6 flex gap-2">
+  <button onclick="window.print()"
+          class="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+    🖨 Drucken / PDF
+  </button>
+</div>
+
+<style>
+  @media print {
+    header, nav, .print-hide { display: none !important; }
+    body { background: white !important; }
+    .print-container { max-width: none; }
+  }
+</style>
+
+{% endblock %}

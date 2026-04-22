@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block title %}Wunde · Mama{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/mother" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-1">🩹 Wunde</h1>
+<p class="text-xs text-slate-500 mb-4">
+  Kaiserschnitt-Wunde in den ersten 2 Wochen täglich prüfen.
+  Alarmzeichen: zunehmende Rötung, Überwärmung, Eiter, Fieber.
+</p>
+
+<form method="post" action="{{ root }}/mother/wound/new" class="space-y-4">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
+    <input type="datetime-local" name="logged_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Status</span>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      {% for val, lbl in wound_status %}
+      <label class="cursor-pointer">
+        <input type="radio" name="status" value="{{ val }}" class="peer sr-only" {% if val == 'ok' %}checked{% endif %}>
+        <div class="text-center px-3 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:{% if val == 'ok' %}bg-emerald-500 border-emerald-500 text-white{% else %}bg-amber-500 border-amber-500 text-white{% endif %}">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <textarea name="notes" rows="3" maxlength="500"
+              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
+              placeholder="z.B. leichte Rötung am oberen Rand"></textarea>
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{% block title %}EPDS · Mama{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/mother" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-1">📋 EPDS-Fragebogen</h1>
+<p class="text-xs text-slate-500 mb-4">
+  <strong>Edinburgh Postnatal Depression Scale</strong> — Screening-Instrument für Wochenbettdepression.
+  10 Fragen, beziehen sich auf die <strong>letzten 7 Tage</strong>. Kein Diagnose-Werkzeug,
+  aber ein klarer Hinweis wenn Unterstützung nötig ist. Empfohlen in Woche 2 und 6.
+</p>
+
+<form method="post" action="{{ root }}/mother/epds" class="space-y-5 mb-6">
+  {% for question, options in questions %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="text-sm font-medium mb-3">{{ loop.index }}. {{ question }}</div>
+    <div class="space-y-2">
+      {% for val, lbl in options %}
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="radio" name="q{{ loop.index0 }}" value="{{ val }}" required
+               {% if loop.index0 == 9 and val > 0 %}data-selfharm="1"{% endif %}
+               class="w-4 h-4">
+        <span class="text-sm">{{ lbl }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% if loop.index0 == 9 %}
+  {# Nach Item 10 Self-Harm Hinweis #}
+  {% endif %}
+  {% endfor %}
+
+  <div id="self-harm-alert" class="hidden rounded-xl border-2 border-rose-500 bg-rose-50 dark:bg-rose-900/20 p-4 text-sm">
+    <strong class="text-rose-700 dark:text-rose-300">⚠ Bitte sofort Unterstützung holen</strong>
+    <p class="mt-2">Du hast bei Frage 10 angegeben, dass Gedanken an Selbstverletzung aufkommen.
+      Das ist ernstzunehmen. Bitte sprich jetzt mit jemandem — deinem Partner, einer Hebamme, deinem Arzt.</p>
+    <p class="mt-2">
+      <strong>Dargebotene Hand (24h, anonym, kostenlos):</strong> Telefon <strong>143</strong> ·
+      <a href="https://www.143.ch" class="underline">143.ch</a><br>
+      <strong>Notfall:</strong> Telefon <strong>144</strong>
+    </p>
+  </div>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Auswerten & speichern
+  </button>
+</form>
+
+<script>
+  (function () {
+    const form = document.querySelector('form');
+    const alert = document.getElementById('self-harm-alert');
+    form.addEventListener('change', function (e) {
+      if (e.target.name === 'q9') {
+        const val = parseInt(e.target.value, 10);
+        alert.classList.toggle('hidden', val === 0);
+      }
+    });
+  })();
+</script>
+
+{% if history %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
+<div class="space-y-2">
+  {% for h, level, msg in history %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm">
+    <div class="flex items-center justify-between">
+      <div class="font-semibold">Score {{ h.value_num|int }} / 30</div>
+      <span class="text-xs px-2 py-0.5 rounded-full
+                   {% if level == 'high' %}bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300
+                   {% elif level == 'moderate' %}bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300
+                   {% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300{% endif %}">
+        {{ level }}
+      </span>
+    </div>
+    <div class="text-xs text-slate-500 mt-1">{{ h.logged_at.strftime('%d.%m.%Y %H:%M') }} · {{ format_ago(h.logged_at) }}</div>
+    <div class="text-xs text-slate-600 dark:text-slate-400 italic mt-1">{{ msg }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<p class="text-xs text-slate-400 dark:text-slate-500 mt-6">
+  Bewertung: 0–9 niedrig · 10–12 möglicher Hinweis · ≥13 wahrscheinlicher Hinweis.
+  Kein medizinisches Werkzeug, dient der Selbstbeobachtung.
+</p>
+
+{% endblock %}

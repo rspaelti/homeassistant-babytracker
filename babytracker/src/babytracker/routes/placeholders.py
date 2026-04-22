@@ -29,23 +29,6 @@ def _placeholder(request, user, title, phase, planned):
     )
 
 
-@router.get("/mother", response_class=HTMLResponse)
-async def mother(request: Request, user: CurrentUser = Depends(get_current_user)):
-    return _placeholder(
-        request, user,
-        title="Mama (Wochenbett)",
-        phase="Phase 4",
-        planned=[
-            "🩹 Wunde (Kaiserschnitt / Dammriss)",
-            "💉 Clexane-Gabe",
-            "❤️ Blutdruck + Puls",
-            "🦵 Thrombose-Check",
-            "📊 EPDS-Fragebogen",
-            "😊 Stimmung + Notizen",
-        ],
-    )
-
-
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: CurrentUser = Depends(get_current_user)):
     return _placeholder(

@@ -1,0 +1,132 @@
+{% extends "layout.html" %}
+
+{% block title %}Mama · Wochenbett{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-4">Mama · Wochenbett</h1>
+
+<!-- Clexane heute prominent -->
+<div class="rounded-2xl border-2 {% if ov.clexane_today %}border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20{% else %}border-amber-500 bg-amber-50 dark:bg-amber-900/20{% endif %} p-4 mb-3">
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex-1 min-w-0">
+      <div class="text-xs uppercase tracking-wide {% if ov.clexane_today %}text-emerald-700 dark:text-emerald-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">
+        💉 Clexane heute
+      </div>
+      <div class="text-lg font-semibold">
+        {% if ov.clexane_today %}
+          ✓ {{ ov.clexane_today.logged_at.strftime('%H:%M') }} Uhr
+        {% else %}
+          Noch ausstehend
+        {% endif %}
+      </div>
+      {% if ov.clexane_days_left is not none %}
+        {% if ov.clexane_days_left > 0 %}
+        <div class="text-xs text-slate-500 mt-1">Noch {{ ov.clexane_days_left }} Tage bis Ende Therapie{% if clexane_end %} ({{ clexane_end.strftime('%d.%m.%Y') }}){% endif %}</div>
+        {% elif ov.clexane_days_left == 0 %}
+        <div class="text-xs text-amber-600 mt-1">Heute letzter Tag</div>
+        {% else %}
+        <div class="text-xs text-slate-500 mt-1">Therapie beendet vor {{ -ov.clexane_days_left }} Tag{% if -ov.clexane_days_left != 1 %}en{% endif %}</div>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% if not ov.clexane_today %}
+    <form method="post" action="{{ root }}/mother/clexane/quick">
+      <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-semibold px-5 py-3 rounded-xl">
+        💉 60 mg jetzt
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="flex gap-2 mt-3 text-xs">
+    <a href="{{ root }}/mother/clexane/new" class="text-slate-500 underline">Anderen Zeitpunkt / Dosis…</a>
+  </div>
+</div>
+
+<!-- Schnellaktionen-Grid -->
+<div class="grid grid-cols-2 gap-3 mb-5">
+
+  <a href="{{ root }}/mother/thrombosis/new"
+     class="rounded-xl border-2 {% if ov.thrombosis_today %}border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20{% else %}border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900{% endif %} p-3 text-center">
+    <div class="text-2xl mb-1">🦵</div>
+    <div class="font-semibold text-sm">Thrombose-Check</div>
+    <div class="text-xs text-slate-500">{% if ov.thrombosis_today %}✓ heute gemacht{% else %}heute noch nicht{% endif %}</div>
+  </a>
+
+  <a href="{{ root }}/mother/wound/new"
+     class="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-center">
+    <div class="text-2xl mb-1">🩹</div>
+    <div class="font-semibold text-sm">Wunde</div>
+    <div class="text-xs text-slate-500">{% if ov.last_wound %}{{ format_ago(ov.last_wound.logged_at) }}{% else %}–{% endif %}</div>
+  </a>
+
+  <a href="{{ root }}/mother/bp/new"
+     class="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-center">
+    <div class="text-2xl mb-1">❤️</div>
+    <div class="font-semibold text-sm">Blutdruck</div>
+    <div class="text-xs text-slate-500">
+      {% if ov.last_bp %}
+        {% set val = ov.last_bp.value_text|from_json %}
+        {{ val.systolic }}/{{ val.diastolic }}{% if val.pulse %} · ♥ {{ val.pulse }}{% endif %}
+      {% else %}–{% endif %}
+    </div>
+  </a>
+
+  <a href="{{ root }}/mother/lochia/new"
+     class="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-center">
+    <div class="text-2xl mb-1">🩸</div>
+    <div class="font-semibold text-sm">Wochenfluss</div>
+    <div class="text-xs text-slate-500">{% if ov.last_lochia %}{{ format_ago(ov.last_lochia.logged_at) }}{% else %}–{% endif %}</div>
+  </a>
+
+  <a href="{{ root }}/mother/epds"
+     class="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-center">
+    <div class="text-2xl mb-1">📋</div>
+    <div class="font-semibold text-sm">EPDS-Test</div>
+    <div class="text-xs text-slate-500">
+      {% if ov.last_epds %}Score {{ ov.last_epds.value_num|int }} · {{ format_ago(ov.last_epds.logged_at) }}{% else %}noch nicht gemacht{% endif %}
+    </div>
+  </a>
+
+  <div class="rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-center">
+    <div class="text-2xl mb-1">😊</div>
+    <div class="font-semibold text-sm mb-2">Stimmung</div>
+    <form method="post" action="{{ root }}/mother/mood/quick" class="flex justify-center gap-1">
+      {% for val in [1,2,3,4,5] %}
+      {% set emojis = {1:'😢',2:'😔',3:'😐',4:'🙂',5:'😄'} %}
+      <button type="submit" name="score" value="{{ val }}"
+              class="text-xl hover:scale-125 transition-transform
+                     {% if ov.last_mood and ov.last_mood.value_num|int == val %}ring-2 ring-brand rounded-full{% endif %}">
+        {{ emojis[val] }}
+      </button>
+      {% endfor %}
+    </form>
+  </div>
+
+</div>
+
+{% if recent %}
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
+<div class="space-y-2">
+  {% set cat_labels = {'clexane': ('💉', 'Clexane'), 'thrombosis_check': ('🦵', 'Thrombose'), 'wound': ('🩹', 'Wunde'), 'bp': ('❤️', 'Blutdruck'), 'epds': ('📋', 'EPDS'), 'mood': ('😊', 'Stimmung'), 'lochia': ('🩸', 'Wochenfluss')} %}
+  {% for m in recent %}
+  {% set meta = cat_labels.get(m.category, ('🤱', m.category)) %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-start justify-between gap-2">
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold">{{ meta[0] }} {{ meta[1] }}
+        {% if m.value_num is not none and m.category == 'epds' %} · Score {{ m.value_num|int }}{% endif %}
+        {% if m.value_num is not none and m.category == 'clexane' %} · {{ m.value_num|int }} mg{% endif %}
+        {% if m.value_text and m.category not in ('clexane', 'bp', 'epds') %} · {{ m.value_text }}{% endif %}
+      </div>
+      <div class="text-xs text-slate-500">{{ m.logged_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(m.logged_at) }}</div>
+      {% if m.notes %}<div class="text-xs text-slate-400 italic truncate">{{ m.notes }}</div>{% endif %}
+    </div>
+    <form method="post" action="{{ root }}/mother/{{ m.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
+      <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

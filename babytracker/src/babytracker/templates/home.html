@@ -118,6 +118,32 @@
     </div>
   </a>
 
+  <a href="{{ root }}/mother" class="block rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500 uppercase tracking-wide">🤱 Mama</div>
+        <div class="text-lg font-semibold mt-1">
+          {% if mother_clexane_today %}✓ Clexane heute{% else %}Clexane ausstehend{% endif %}
+        </div>
+      </div>
+      <div class="text-right text-sm text-slate-500">
+        Wochenbett
+      </div>
+    </div>
+  </a>
+
+  <a href="{{ root }}/timeline" class="block rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500 uppercase tracking-wide">📋 Tagesverlauf</div>
+        <div class="text-lg font-semibold mt-1">{{ today_event_count }} Einträge heute</div>
+      </div>
+      <div class="text-right text-sm text-slate-500">
+        alles chronologisch
+      </div>
+    </div>
+  </a>
+
 </div>
 
 <a href="{{ root }}/quick"

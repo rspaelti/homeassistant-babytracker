@@ -15,17 +15,21 @@ from babytracker import __version__
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings  # noqa: F401  # keep env/side effects
 from babytracker.db import engine, get_session
-from babytracker.models import Child, Measurement, Medication, Vital, WarningState
+from babytracker.models import Child, Measurement, Medication, MotherLog, Vital, WarningState
+from babytracker.services.timeline import day_range_utc, events_for_range
 from babytracker.routes import diaper as diaper_routes
 from babytracker.routes import feed as feed_routes
 from babytracker.routes import growth as growth_routes
 from babytracker.routes import health as health_routes
 from babytracker.routes import meds as meds_routes
 from babytracker.routes import more as more_routes
+from babytracker.routes import mother as mother_routes
+from babytracker.routes import notes as notes_routes
 from babytracker.routes import placeholders as placeholder_routes
 from babytracker.routes import quick as quick_routes
 from babytracker.routes import setup as setup_routes
 from babytracker.routes import sleep as sleep_routes
+from babytracker.routes import timeline as timeline_routes
 from babytracker.routes import warnings as warnings_routes
 from babytracker.scheduler import start_scheduler, stop_scheduler
 from babytracker.services.daily import (
@@ -79,14 +83,33 @@ app.include_router(diaper_routes.router)
 app.include_router(sleep_routes.router)
 app.include_router(health_routes.router)
 app.include_router(meds_routes.router)
+app.include_router(mother_routes.router)
+app.include_router(notes_routes.router)
+app.include_router(timeline_routes.router)
 app.include_router(quick_routes.router)
 app.include_router(warnings_routes.router)
 app.include_router(more_routes.router)
 app.include_router(placeholder_routes.router)
 
 
+def _from_json(value: str | None):
+    if not value:
+        return {}
+    import json as _json
+
+    try:
+        return _json.loads(value)
+    except (ValueError, TypeError):
+        return {}
+
+
+templates.env.filters["from_json"] = _from_json
+
+
 @app.on_event("startup")
 async def _startup() -> None:
+    from babytracker.scripts.seed import seed_if_empty
+    seed_if_empty()
     start_scheduler()
 
 
@@ -172,6 +195,23 @@ async def home(
             .limit(1)
         ).first()
         ctx["vit_d_done"] = bool(vit_d_today)
+
+        # Mama: Clexane heute?
+        clexane_today = session.exec(
+            select(MotherLog)
+            .where(
+                MotherLog.category == "clexane",
+                MotherLog.logged_at >= start_d,
+                MotherLog.logged_at < end_d,
+            )
+            .limit(1)
+        ).first()
+        ctx["mother_clexane_today"] = bool(clexane_today)
+
+        # Heute-Events für Timeline-Kachel
+        today_start, today_end = day_range_utc(today.strftime("%Y-%m-%d"))
+        today_events = events_for_range(session, child, today_start, today_end)
+        ctx["today_event_count"] = len(today_events)
 
         ctx["active_warnings"] = session.exec(
             select(WarningState).where(WarningState.active == True)  # noqa: E712

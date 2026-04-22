@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block title %}Thrombose-Check · Mama{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/mother" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-1">🦵 Thrombose-Check</h1>
+<p class="text-xs text-slate-500 mb-4">
+  Tägliche Kontrolle der Waden in den ersten 6 Wochen (bei Faktor-V-Leiden).
+  Achte auf: einseitige Schwellung, Rötung, Überwärmung, ziehender Schmerz.
+</p>
+
+<form method="post" action="{{ root }}/mother/thrombosis/new" class="space-y-4">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
+    <input type="datetime-local" name="logged_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Linke Wade</span>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      {% for val, lbl in results %}
+      <label class="cursor-pointer">
+        <input type="radio" name="left" value="{{ val }}" class="peer sr-only" {% if val == 'ok' %}checked{% endif %}>
+        <div class="text-center px-2 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:{% if val == 'ok' %}bg-emerald-500 border-emerald-500 text-white{% else %}bg-rose-500 border-rose-500 text-white{% endif %}">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Rechte Wade</span>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      {% for val, lbl in results %}
+      <label class="cursor-pointer">
+        <input type="radio" name="right" value="{{ val }}" class="peer sr-only" {% if val == 'ok' %}checked{% endif %}>
+        <div class="text-center px-2 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                    peer-checked:{% if val == 'ok' %}bg-emerald-500 border-emerald-500 text-white{% else %}bg-rose-500 border-rose-500 text-white{% endif %}">
+          {{ lbl }}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <input type="text" name="notes" maxlength="500"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}

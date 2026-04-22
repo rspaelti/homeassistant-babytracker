@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block title %}Blutdruck · Mama{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/mother" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-4">❤️ Blutdruck + Puls</h1>
+
+<form method="post" action="{{ root }}/mother/bp/new" class="space-y-4">
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
+    <input type="datetime-local" name="logged_at" required value="{{ now_local }}"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <div class="grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Systolisch (oben)</span>
+      <input type="number" name="systolic" required min="70" max="220" inputmode="numeric" placeholder="120"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-2xl font-semibold text-center">
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Diastolisch (unten)</span>
+      <input type="number" name="diastolic" required min="40" max="140" inputmode="numeric" placeholder="80"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-2xl font-semibold text-center">
+    </label>
+  </div>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Puls (optional)</span>
+    <input type="number" name="pulse" min="30" max="220" inputmode="numeric" placeholder="72"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold text-center">
+  </label>
+
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
+    <input type="text" name="notes" maxlength="500"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+  </label>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
+    Speichern
+  </button>
+</form>
+
+{% endblock %}
