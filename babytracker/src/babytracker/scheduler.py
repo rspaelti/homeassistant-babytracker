@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -11,21 +12,33 @@ from sqlmodel import Session, select
 
 from babytracker.config import settings
 from babytracker.db import engine
-from babytracker.models import Child, WarningState
-from babytracker.models import NotifyTarget
+from babytracker.models import Child, NotifyTarget, WarningState
+from babytracker.services.daily import as_aware
 from babytracker.services.ha_client import notify_mobile
 from babytracker.services.warnings import is_push_enabled, run_all
 
 log = logging.getLogger(__name__)
 TZ = ZoneInfo(settings.timezone)
 
-# Gleicher Alarm wird höchstens alle N Stunden erneut gepusht.
+# Gleicher Alarm wird höchstens alle N Stunden erneut gepusht (solange durchgehend aktiv).
 RENOTIFY_HOURS = 6
 
 scheduler: AsyncIOScheduler | None = None
 
+# Serialisiert Checks: Scheduler-Tick und manueller Trigger teilen sich den Lock,
+# damit keine gleichzeitigen DB-Writes auf `warning_states` kollidieren.
+_check_lock = asyncio.Lock()
+
 
 async def check_warnings_job() -> None:
+    async with _check_lock:
+        try:
+            await _check_warnings_impl()
+        except Exception:
+            log.exception("check_warnings_job failed")
+
+
+async def _check_warnings_impl() -> None:
     now = datetime.now(TZ)
     with Session(engine) as session:
         child = session.exec(
@@ -57,7 +70,7 @@ async def check_warnings_job() -> None:
                     message=w.message,
                 )
                 session.add(state)
-                should_notify = True  # brandneu
+                should_notify = True
             else:
                 state.last_seen_at = now
                 state.active = True
@@ -69,10 +82,10 @@ async def check_warnings_job() -> None:
                     # Reaktivierung — Warnung war zwischenzeitlich weg
                     should_notify = True
                 elif state.last_notified_at is None:
-                    # Bisher nie gepusht (z.B. keine Targets, Push deaktiviert)
                     should_notify = True
                 else:
-                    hours = (now - state.last_notified_at).total_seconds() / 3600
+                    last_notified = as_aware(state.last_notified_at)
+                    hours = (now - last_notified).total_seconds() / 3600
                     if hours >= RENOTIFY_HOURS:
                         should_notify = True
 
@@ -99,8 +112,7 @@ async def check_warnings_job() -> None:
                 elif not targets:
                     log.info("Warning %s: no enabled notify targets", w.code)
 
-        # Beim Inaktivieren: last_notified_at zurücksetzen,
-        # damit beim nächsten Auftreten frisch gepusht wird.
+        # Inaktivieren: last_notified_at zurücksetzen → nächste Aktivierung pusht frisch
         existing = session.exec(
             select(WarningState).where(WarningState.active == True)  # noqa: E712
         ).all()
