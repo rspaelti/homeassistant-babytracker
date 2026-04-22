@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<h1 class="text-xl font-bold mb-4">Mehr</h1>
+<h1 class="text-xl font-bold mb-4">Einstellungen</h1>
 
 <div class="space-y-2">
 
@@ -17,7 +17,7 @@
       <span class="text-2xl">⚠</span>
       <div>
         <div class="font-semibold">Warnungen</div>
-        <div class="text-xs text-slate-500">Alarm-Regeln, Verlauf, Push-Status</div>
+        <div class="text-xs text-slate-500">Alarm-Regeln ein-/ausschalten, Push konfigurieren, Verlauf</div>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -28,61 +28,25 @@
     </div>
   </a>
 
-  <a href="{{ root }}/health"
-     class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">🌡️</span>
-      <div>
-        <div class="font-semibold">Gesundheit</div>
-        <div class="text-xs text-slate-500">Temperatur, Ikterus, Nabel, Haut</div>
-      </div>
-    </div>
-    <span class="text-slate-400">›</span>
-  </a>
-
-  <a href="{{ root }}/meds"
-     class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">💊</span>
-      <div>
-        <div class="font-semibold">Medikamente</div>
-        <div class="text-xs text-slate-500">Vitamin D/K, Historie</div>
-      </div>
-    </div>
-    <span class="text-slate-400">›</span>
-  </a>
-
   <a href="{{ root }}/setup/child"
      class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
     <div class="flex items-center gap-3">
       <span class="text-2xl">👶</span>
       <div>
-        <div class="font-semibold">Kind bearbeiten</div>
-        <div class="text-xs text-slate-500">Name, Geburtsdaten</div>
-      </div>
-    </div>
-    <span class="text-slate-400">›</span>
-  </a>
-
-  <a href="{{ root }}/mother"
-     class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 opacity-75">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">🤱</span>
-      <div>
-        <div class="font-semibold">Mama (Wochenbett)</div>
-        <div class="text-xs text-slate-500">Phase 4</div>
+        <div class="font-semibold">Kind</div>
+        <div class="text-xs text-slate-500">Name, Geschlecht, Geburtsdaten bearbeiten</div>
       </div>
     </div>
     <span class="text-slate-400">›</span>
   </a>
 
   <a href="{{ root }}/settings"
-     class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 opacity-75">
+     class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
     <div class="flex items-center gap-3">
       <span class="text-2xl">⚙</span>
       <div>
-        <div class="font-semibold">Einstellungen</div>
-        <div class="text-xs text-slate-500">Phase 3+</div>
+        <div class="font-semibold">Weitere Einstellungen</div>
+        <div class="text-xs text-slate-500">Benutzer, Export, Theme · kommt später</div>
       </div>
     </div>
     <span class="text-slate-400">›</span>
@@ -90,6 +54,6 @@
 
 </div>
 
-<p class="text-xs text-slate-400 dark:text-slate-500 mt-6">Version {{ version }}</p>
+<p class="text-xs text-slate-400 dark:text-slate-500 mt-6">Baby-Tracker · Version {{ version }}</p>
 
 {% endblock %}

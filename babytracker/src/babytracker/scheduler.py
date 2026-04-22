@@ -13,7 +13,7 @@ from babytracker.config import settings
 from babytracker.db import engine
 from babytracker.models import Child, WarningState
 from babytracker.services.ha_client import notify_mobile
-from babytracker.services.warnings import run_all
+from babytracker.services.warnings import is_push_enabled, run_all
 
 log = logging.getLogger(__name__)
 TZ = ZoneInfo(settings.timezone)
@@ -65,7 +65,7 @@ async def check_warnings_job() -> None:
                     if hours >= RENOTIFY_HOURS:
                         should_notify = True
 
-            if should_notify and settings.notify_service:
+            if should_notify and settings.notify_service and is_push_enabled(session, w.code):
                 ok = await notify_mobile(
                     settings.notify_service,
                     f"Baby: {w.title}",

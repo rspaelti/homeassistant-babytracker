@@ -23,9 +23,50 @@
 {% else %}
 <div class="rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 p-4 mb-5">
   <div class="font-semibold text-emerald-700 dark:text-emerald-300">✓ Keine aktiven Warnungen</div>
-  <div class="text-sm mt-1 text-slate-600 dark:text-slate-400">Alles im Rahmen.</div>
 </div>
 {% endif %}
+
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Regeln</h2>
+<p class="text-xs text-slate-500 mb-3">
+  Pro Regel separat ein-/ausschaltbar. Push landet als Benachrichtigung auf dem Handy
+  (braucht <code>notify_service</code> in der Add-on-Config;
+  {% if notify_service_configured %}<span class="text-emerald-600">aktuell konfiguriert</span>{% else %}<span class="text-amber-600">aktuell nicht konfiguriert</span>{% endif %}).
+</p>
+
+<div class="space-y-2 mb-5">
+  {% for rule in rules %}
+  {% set cfg = configs[rule.code] %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+    <div class="font-semibold flex items-center gap-2">
+      {% if rule.default_severity == 'critical' %}🚨{% else %}⚠{% endif %}
+      {{ rule.label }}
+    </div>
+    <div class="text-xs text-slate-500 mb-3">{{ rule.description }}</div>
+
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      <form method="post" action="{{ root }}/warnings/rules/{{ rule.code }}/toggle" class="flex">
+        <input type="hidden" name="enabled" value="{{ '' if cfg.enabled else '1' }}">
+        <button type="submit"
+                class="w-full px-3 py-2 rounded-lg border
+                       {% if cfg.enabled %}bg-emerald-500 text-white border-emerald-500
+                       {% else %}bg-white dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700{% endif %}">
+          {% if cfg.enabled %}✓ Aktiv{% else %}Aus{% endif %}
+        </button>
+      </form>
+      <form method="post" action="{{ root }}/warnings/rules/{{ rule.code }}/toggle_push" class="flex">
+        <input type="hidden" name="push_enabled" value="{{ '' if cfg.push_enabled else '1' }}">
+        <button type="submit"
+                class="w-full px-3 py-2 rounded-lg border
+                       {% if cfg.push_enabled %}bg-brand text-white border-brand
+                       {% else %}bg-white dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700{% endif %}"
+                {% if not cfg.enabled %}disabled{% endif %}>
+          🔔 {% if cfg.push_enabled %}Push an{% else %}Push aus{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 
 {% if history %}
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
@@ -54,8 +95,7 @@
 {% endif %}
 
 <p class="text-xs text-slate-400 dark:text-slate-500 mt-6">
-  Checks laufen automatisch alle 5 Minuten. Push-Notifications benötigen eine konfigurierte
-  <code>notify_service</code> (z.B. <code>mobile_app_renes_iphone</code>) in der Add-on-Configuration.
+  Checks laufen automatisch alle 5 Minuten. Gleiche Warnung pusht frühestens alle 6h erneut.
 </p>
 
 {% endblock %}

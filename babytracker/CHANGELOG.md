@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3
+
+- Mehr-Hub aufgeräumt: nur noch Warnungen, Kind, weitere Einstellungen. Gesundheit/Meds waren doppelt mit Home und gehören nicht zu Einstellungen.
+- Warnungen-Seite bekommt **Regel-Konfiguration**: jede der 5 Regeln ist einzeln ein-/ausschaltbar + Push pro Regel separat steuerbar. Label + Beschreibung sichtbar.
+- Neue Tabelle `warning_rule_config` + Migration. Defaults: alle aktiv, alle Push aktiv.
+- Scheduler überspringt deaktivierte Regeln; Push nur bei `push_enabled` pro Regel.
+
 ## 0.4.2
 
 - Fix: fehlende `routes/more.py` für den /more-Hub nachgereicht (v0.4.1 hätte beim Start gecrasht)
