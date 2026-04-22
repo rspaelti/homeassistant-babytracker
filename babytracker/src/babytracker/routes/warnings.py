@@ -13,6 +13,7 @@ from babytracker.db import get_session
 from babytracker.models import NotifyTarget, WarningState
 from babytracker.routes._shared import TZ, get_child
 from babytracker.services.daily import format_ago
+from babytracker.scheduler import check_warnings_job
 from babytracker.services.ha_client import list_mobile_app_notify_services, notify_mobile
 from babytracker.services.warnings import (
     ALL_RULES,
@@ -176,4 +177,14 @@ async def target_test(
             f"Test-Notification für {t.label}. Wenn du das liest, funktioniert es.",
             critical=False,
         )
+    return _redirect_to_warnings(request)
+
+
+@router.post("/warnings/check_now")
+async def check_now(
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Manueller Trigger: Warnungs-Scan jetzt laufen lassen inkl. Push."""
+    await check_warnings_job()
     return _redirect_to_warnings(request)

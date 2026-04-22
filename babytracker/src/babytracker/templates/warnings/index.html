@@ -4,7 +4,15 @@
 
 {% block content %}
 
-<h1 class="text-xl font-bold mb-3">Warnungen</h1>
+<div class="flex items-center justify-between mb-3">
+  <h1 class="text-xl font-bold">Warnungen</h1>
+  <form method="post" action="{{ root }}/warnings/check_now">
+    <button type="submit"
+            class="text-sm px-3 py-1.5 rounded-lg border border-brand text-brand bg-white dark:bg-slate-900">
+      🔄 Jetzt prüfen
+    </button>
+  </form>
+</div>
 
 {% if live %}
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Aktiv jetzt</h2>
