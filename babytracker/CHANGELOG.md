@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.6.0 — Phase 4 Mama + Tagesverlauf + Notizen
+
+### 📋 Tagesverlauf (`/timeline`)
+- Chronologischer Zeitstrahl aller Events über alle Kategorien: Stillen, Flasche, Windeln, Schlaf, Temperatur, Gesundheitsereignisse, Medikamente, Mama-Einträge, Messungen, Notizen
+- Filter: Heute / Gestern / 7 Tage / beliebiger Tag
+- Druck-freundliche Ansicht (Button "🖨 Drucken / PDF") — ideal für Hebamme/Arzt-Besuch
+- Footer-Navigation: "Wachstum" ersetzt durch "Verlauf" (Wachstum bleibt über Home-Kachel erreichbar)
+
+### 📝 Freie Notizen (`/notes/new`)
+- Neue Eingabe mit Zeitpunkt + Freitext + optionalen Tags
+- Erscheint im Tagesverlauf mit 📝-Icon
+- Für Auffälligkeiten, Fragen an die Hebamme, besondere Momente
+
+### 🤱 Phase 4: Mama-Sektion (`/mother`)
+- **💉 Clexane-Tracker**: Ein-Klick "60 mg jetzt", Countdown bis Therapie-Ende (6 Wo. postpartal), Heute-Status prominent
+- **🦵 Thrombose-Check**: tägliche Waden-Kontrolle L+R (ok / Schwellung / Rötung / Schmerz)
+- **🩹 Wunde**: Kaiserschnitt-Status (unauffällig / gerötet / nässt / Sekret gelb/grün / blutig) + Notiz
+- **❤️ Blutdruck + Puls**: systolisch/diastolisch/Puls mit Validierung
+- **🩸 Wochenfluss (Lochien)**: Farbe + Menge, Verlauf-Hinweis rot→braun→gelb→weiss
+- **📋 EPDS-Fragebogen** (Edinburgh Postnatal Depression Scale): 10 Items auf Deutsch, Auswertung mit Risikoklasse, **Self-Harm-Alarmbox bei Item 10** mit Schweizer Hilfs-Hotlines (Dargebotene Hand 143, Notruf 144)
+- **😊 Stimmung**: 5-Stufen-Emoji-Skala, Ein-Tap vom Hub
+- Hub-Seite mit allen Status-Kacheln auf einen Blick
+
+### 🏠 Home-Dashboard erweitert
+- Neue Kacheln: Mama (Clexane-Status), Tagesverlauf (Event-Anzahl heute)
+
+### 🔧 Internes
+- `services/timeline.py` + `services/mother.py`
+- Seed läuft jetzt auch beim Python-Startup → robust im Dev-Modus
+- Defensives `_mother_id()` legt Parent-User bei Bedarf an
+
 ## 0.5.0 — Push-Empfänger in der App konfigurieren
 
 - **Neue Tabelle `notify_targets`**: beliebig viele Push-Empfänger (z.B. Renés iPhone + Janas iPhone + Grosseltern)
