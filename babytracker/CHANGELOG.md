@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.6 — Zukunfts-Zeitpunkte überall blockiert
+
+Die Guard aus 0.6.5 war nur für Stillen. Jetzt gilt sie für **jedes** Datum/Zeit-Feld in der App:
+
+- **Templates** (alle 13 datetime-local Inputs): `max="{{ now_local }}"` → iOS/Android-Picker lässt keine Zukunft zu
+- **POST-Routen** (Stillen, Flasche, Windeln, Schlaf, Temperatur/Ikterus/…, Medikamente, Mama × 5, Notizen, Wachstum, Kind-Setup): zentraler Helper `parse_past_datetime` mit 60s Karenz (für Uhr-Drift) lehnt Zukunft mit 400 ab
+
+## 0.6.5 — Guards gegen Zeit-in-Zukunft (nur Stillen)
+
+- Home-Anzeige-Guard + Feed-Form + Feed-POST gegen Zukunfts-Zeitpunkte.
+
 ## 0.6.4 — Bugfix: Scheduler crashte mit tz-naive Datum
 
 **Bug-Fix:** `"🔄 Jetzt prüfen"` und der 2-Min-Scheduler warfen beide einen TypeError — SQLite liest `last_notified_at` tz-naiv zurück, während `now` tz-aware ist. Subtraktion crashte beim Renotify-Check.

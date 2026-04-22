@@ -34,5 +34,22 @@ def parse_local_datetime(value: str) -> datetime:
     return dt
 
 
+def parse_past_datetime(value: str, allow_future_seconds: int = 60) -> datetime:
+    """Wie parse_local_datetime, wirft aber 400 wenn > jetzt (mit kleiner Karenz).
+
+    Die Karenz fängt Uhrzeit-Drift zwischen Client und Server ab.
+    """
+    from fastapi import HTTPException
+
+    dt = parse_local_datetime(value)
+    now = datetime.now(TZ)
+    if (dt - now).total_seconds() > allow_future_seconds:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Zeitpunkt darf nicht in der Zukunft liegen ({dt.strftime('%d.%m.%Y %H:%M')}).",
+        )
+    return dt
+
+
 def now_local_iso() -> str:
     return datetime.now(TZ).strftime("%Y-%m-%dT%H:%M")

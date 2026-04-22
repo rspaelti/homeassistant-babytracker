@@ -10,7 +10,7 @@ from sqlmodel import Session
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.db import get_session
 from babytracker.models import Note
-from babytracker.routes._shared import get_child, get_user_id, now_local_iso, parse_local_datetime
+from babytracker.routes._shared import get_child, get_user_id, now_local_iso, parse_past_datetime
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
@@ -48,7 +48,7 @@ async def note_create(
         raise HTTPException(status_code=400, detail="Text erforderlich")
 
     try:
-        dt = parse_local_datetime(logged_at)
+        dt = parse_past_datetime(logged_at)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
 

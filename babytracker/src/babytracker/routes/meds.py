@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.db import get_session
 from babytracker.models import Medication
-from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_local_datetime
+from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_past_datetime
 from babytracker.services.daily import day_bounds_utc, format_ago
 
 router = APIRouter()
@@ -133,7 +133,7 @@ async def meds_create(
         return _redirect_to_setup(request)
 
     try:
-        dt = parse_local_datetime(given_at)
+        dt = parse_past_datetime(given_at)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
 

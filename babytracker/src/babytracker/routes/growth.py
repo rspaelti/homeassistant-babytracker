@@ -126,7 +126,8 @@ async def growth_create(
             raise HTTPException(status_code=400, detail="Kopfumfang muss 25–60 cm sein")
 
     try:
-        dt_local = datetime.fromisoformat(measured_at).replace(tzinfo=TZ)
+        from babytracker.routes._shared import parse_past_datetime
+        dt_local = parse_past_datetime(measured_at)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
 

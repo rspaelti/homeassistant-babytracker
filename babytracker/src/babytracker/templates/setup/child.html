@@ -39,7 +39,7 @@
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Geburtszeitpunkt</span>
-    <input type="datetime-local" name="birth_at" required value="{{ prefill.birth_at }}"
+    <input type="datetime-local" name="birth_at" required value="{{ prefill.birth_at }}" max="{{ now_local }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 

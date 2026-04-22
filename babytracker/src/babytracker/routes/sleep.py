@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.db import get_session
 from babytracker.models import SleepSession
-from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_local_datetime
+from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_past_datetime
 from babytracker.services.daily import format_ago, format_duration, sleep_summary
 
 router = APIRouter()
@@ -179,8 +179,8 @@ async def sleep_create(
         return _redirect_to_setup(request)
 
     try:
-        started = parse_local_datetime(started_at)
-        ended = parse_local_datetime(ended_at) if ended_at else None
+        started = parse_past_datetime(started_at)
+        ended = parse_past_datetime(ended_at) if ended_at else None
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
 

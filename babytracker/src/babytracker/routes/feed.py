@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from babytracker.auth import CurrentUser, get_current_user
 from babytracker.db import get_session
 from babytracker.models import Feeding
-from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_local_datetime
+from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_past_datetime
 from babytracker.services.daily import feed_summary, format_ago
 from babytracker.services.warnings import estimate_feed_interval
 
@@ -136,13 +136,9 @@ async def feed_create(
         return _redirect_to_setup(request)
 
     try:
-        dt = parse_local_datetime(started_at)
+        dt = parse_past_datetime(started_at)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ungültiges Datum")
-
-    now = datetime.now(TZ)
-    if dt > now:
-        raise HTTPException(status_code=400, detail=f"Startzeit liegt in der Zukunft: {dt}")
 
     feed = Feeding(
         child_id=child.id,

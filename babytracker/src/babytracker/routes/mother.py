@@ -154,7 +154,7 @@ async def clexane_create(
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    dt = parse_local_datetime(logged_at)
+    dt = parse_past_datetime(logged_at)
     session.add(
         MotherLog(
             mother_id=_mother_id(session, user),
@@ -195,7 +195,7 @@ async def thrombosis_create(
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    dt = parse_local_datetime(logged_at)
+    dt = parse_past_datetime(logged_at)
     if left not in dict(THROMBOSIS_RESULT) or right not in dict(THROMBOSIS_RESULT):
         raise HTTPException(status_code=400, detail="Ungültiger Wert")
     session.add(
@@ -238,7 +238,7 @@ async def wound_create(
 ):
     if status not in dict(WOUND_STATUS):
         raise HTTPException(status_code=400, detail="Ungültiger Status")
-    dt = parse_local_datetime(logged_at)
+    dt = parse_past_datetime(logged_at)
     session.add(
         MotherLog(
             mother_id=_mother_id(session, user),
@@ -283,7 +283,7 @@ async def bp_create(
         raise HTTPException(status_code=400, detail="Blutdruckwerte unrealistisch")
     if pulse and not (30 <= pulse <= 220):
         raise HTTPException(status_code=400, detail="Puls unrealistisch")
-    dt = parse_local_datetime(logged_at)
+    dt = parse_past_datetime(logged_at)
     payload = {"systolic": systolic, "diastolic": diastolic}
     if pulse:
         payload["pulse"] = pulse
@@ -430,7 +430,7 @@ async def lochia_create(
 ):
     if color not in dict(LOCHIA_COLOR) or amount not in dict(LOCHIA_AMOUNT):
         raise HTTPException(status_code=400, detail="Ungültiger Wert")
-    dt = parse_local_datetime(logged_at)
+    dt = parse_past_datetime(logged_at)
     session.add(
         MotherLog(
             mother_id=_mother_id(session, user),

@@ -74,9 +74,8 @@ async def setup_child_save(
         raise HTTPException(status_code=400, detail="sex muss 'f' oder 'm' sein")
 
     try:
-        dt = datetime.fromisoformat(birth_at)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=TZ)
+        from babytracker.routes._shared import parse_past_datetime
+        dt = parse_past_datetime(birth_at)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Ungültiges Datum: {e}")
 
