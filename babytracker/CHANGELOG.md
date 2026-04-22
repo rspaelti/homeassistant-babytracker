@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.3 — Push-Fix: Reaktivierung von Warnungen
+
+**Bug-Fix:** Wenn eine Warnung (z.B. `no_feed_4h`) zwischenzeitlich inaktiv wurde (weil gestillt wurde) und später erneut aktiv wurde, hat das 6h-Debouncing fälschlicherweise den Push unterdrückt — `last_notified_at` war vom ersten Mal gesetzt.
+
+- Beim Inaktiv-Setzen wird `last_notified_at` jetzt **zurückgesetzt**, damit beim nächsten Auftreten frisch gepusht wird.
+- Wenn Warnung reaktiviert wird (active=False → True): **immer pushen**, unabhängig von der 6h-Frist (die gilt nur bei durchgehend aktiver Warnung).
+- Scheduler-Intervall von 5 auf **2 Minuten** verkürzt → schnellere Reaktion.
+- Neuer Button **"🔄 Jetzt prüfen"** auf `/warnings` triggert den Check sofort (kein Warten auf Timer).
+- Mehr Info-Logs: pro Check wird geloggt wie viele Warnungen aktiv sind, wie viele gepusht und wie viele deaktiviert wurden.
+
 ## 0.6.2 — Dynamisches Still-Intervall
 
 Die Stilld-Erinnerung ist nicht mehr starr bei 4h, sondern rechnet live:
