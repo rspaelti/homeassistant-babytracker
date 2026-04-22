@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.2 — Dynamisches Still-Intervall
+
+Die Stilld-Erinnerung ist nicht mehr starr bei 4h, sondern rechnet live:
+
+**Basis-Intervall nach Alter** (WHO / Wikipedia-evidence-based):
+- 0–4 Wochen: 2.5h (Neugeborene: 8–12×/24h erwartet)
+- 1–3 Monate: 3h
+- 3–6 Monate: 3.5h
+- >6 Monate: 4h
+
+**Modifikationen:**
+- **Gewichtsverlust >10 %** vom Geburtsgewicht → Intervall -1h
+- **Gewichtsverlust 7–10 %** → -0.5h
+- **Letzte Stillzeit zu kurz** (Ideal: 15 Min pro gestillter Seite):
+  - Delta >20 Min (= deutlich zu kurz) → -1h
+  - Delta >10 Min → -0.5h
+- Mindest-Intervall 1.5h
+
+**Neu sichtbar:**
+- **Home-Kachel Ernährung** zeigt "nächste in ~X h Y Min" · rot wenn fällig, amber wenn <30 Min
+- **Feed-Seite** mit grosser Kachel "Nächste Mahlzeit empfohlen" inkl. Herleitung (Basis + Gründe für Verkürzung)
+- Warnung `no_feed_4h` nennt im Text Basis-Intervall + Modifikations-Gründe
+
 ## 0.6.1 — Theme-Toggle
 
 - **Default ist jetzt Dunkel** (statt Auto nach Uhrzeit)

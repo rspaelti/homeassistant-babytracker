@@ -114,6 +114,98 @@ def check_low_pees(session: Session, child: Child, now: datetime) -> WarningItem
     )
 
 
+def _base_interval_hours(age_days: int) -> float:
+    """Alters-abhängiges Basis-Intervall (Schweiz / WHO / Stillstiftung):
+    Neugeborene 8–12 Mahlzeiten/24h → alle 2–3h, später verdünnt sich das.
+    """
+    if age_days < 28:
+        return 2.5
+    if age_days < 90:
+        return 3.0
+    if age_days < 180:
+        return 3.5
+    return 4.0
+
+
+def _weight_loss_adjustment(session: Session, child: Child) -> tuple[float, str | None]:
+    """Bei Gewichtsverlust häufiger stillen. Ermittelt Delta-Stunden (negativ)."""
+    if not child.birth_weight_g:
+        return 0.0, None
+    latest = session.exec(
+        select(Measurement)
+        .where(Measurement.child_id == child.id, Measurement.kind == "weight")
+        .order_by(Measurement.measured_at.desc())
+    ).first()
+    if not latest or latest.value >= child.birth_weight_g:
+        return 0.0, None
+    loss_pct = (child.birth_weight_g - latest.value) / child.birth_weight_g * 100
+    if loss_pct > 10:
+        return -1.0, f"Gewichtsverlust {loss_pct:.1f}%"
+    if loss_pct > 7:
+        return -0.5, f"Gewichtsverlust {loss_pct:.1f}%"
+    return 0.0, None
+
+
+def _breast_duration_adjustment(last: Feeding) -> tuple[float, str | None]:
+    """Wenn die letzte Still-Einheit kürzer war als ideal, häufiger erinnern.
+
+    Ideal: 15 Min pro gestillter Seite (15 bei einseitig, 30 bei beidseitig).
+    Toleranz ±10 Min. Darunter: -30 Min, bei >20 Min Delta: -60 Min.
+    """
+    if last.kind != "breast":
+        return 0.0, None
+    left = last.duration_left_min or 0
+    right = last.duration_right_min or 0
+    actual = left + right
+    if actual <= 0:
+        return 0.0, None
+
+    sides_used = (1 if left > 0 else 0) + (1 if right > 0 else 0)
+    if sides_used == 0:
+        return 0.0, None
+    ideal = 15 * sides_used
+    delta = ideal - actual
+    if delta > 20:
+        return -1.0, f"letzte Mahlzeit nur {actual} Min (soll ~{ideal})"
+    if delta > 10:
+        return -0.5, f"letzte Mahlzeit {actual} Min (soll ~{ideal})"
+    return 0.0, None
+
+
+@dataclass
+class FeedIntervalEstimate:
+    hours: float
+    base_hours: float
+    reasons: list[str]
+
+
+def estimate_feed_interval(session: Session, child: Child, now: datetime) -> FeedIntervalEstimate:
+    """Berechnet das erwartete Intervall bis zur nächsten Mahlzeit."""
+    age = _age_days(child, now)
+    base = _base_interval_hours(age)
+    reasons: list[str] = []
+    total = base
+
+    w_adj, w_reason = _weight_loss_adjustment(session, child)
+    total += w_adj
+    if w_reason:
+        reasons.append(f"{w_reason} {w_adj:+.1f}h")
+
+    last_feed = session.exec(
+        select(Feeding)
+        .where(Feeding.child_id == child.id)
+        .order_by(Feeding.started_at.desc())
+    ).first()
+    if last_feed:
+        d_adj, d_reason = _breast_duration_adjustment(last_feed)
+        total += d_adj
+        if d_reason:
+            reasons.append(f"{d_reason} {d_adj:+.1f}h")
+
+    total = max(1.5, total)
+    return FeedIntervalEstimate(hours=total, base_hours=base, reasons=reasons)
+
+
 def check_no_feed(session: Session, child: Child, now: datetime) -> WarningItem | None:
     if now.hour < 7 or now.hour >= 22:
         return None
@@ -125,15 +217,31 @@ def check_no_feed(session: Session, child: Child, now: datetime) -> WarningItem 
     if not latest:
         return None
     last_at = as_aware(latest.started_at)
-    hours = (now - last_at).total_seconds() / 3600
-    if hours < 4:
+    hours_since = (now - last_at).total_seconds() / 3600
+
+    est = estimate_feed_interval(session, child, now)
+    if hours_since < est.hours:
         return None
+
+    reason_tail = ""
+    if est.reasons:
+        reason_tail = " · " + ", ".join(est.reasons)
+
     return WarningItem(
         code="no_feed_4h",
         severity="warn",
-        title=f"Seit {hours:.1f}h keine Mahlzeit",
-        message="Letzte Stillzeit/Flasche ist über 4 Stunden her.",
-        context={"hours": round(hours, 1), "last_at": last_at.isoformat()},
+        title=f"Mahlzeit fällig – seit {hours_since:.1f}h nichts",
+        message=(
+            f"Empfohlenes Intervall aktuell {est.hours:.1f}h "
+            f"(Basis {est.base_hours:.1f}h für Alter){reason_tail}."
+        ),
+        context={
+            "hours_since": round(hours_since, 1),
+            "expected": round(est.hours, 2),
+            "base": round(est.base_hours, 2),
+            "reasons": est.reasons,
+            "last_at": last_at.isoformat(),
+        },
     )
 
 
@@ -201,8 +309,12 @@ ALL_RULES: list[WarningRule] = [
     ),
     WarningRule(
         code="no_feed_4h",
-        label="Keine Mahlzeit seit >4h",
-        description="Warnt tagsüber (7–22 Uhr), wenn über 4 Stunden nichts getrunken wurde.",
+        label="Mahlzeit-Intervall überschritten",
+        description=(
+            "Dynamisches Intervall (Basis 2.5–4h nach Alter), "
+            "kürzer bei Gewichtsverlust und wenn die letzte Stillzeit unter dem Ideal war "
+            "(15 Min pro gestillter Seite). Warnt tagsüber 7–22 Uhr."
+        ),
         default_severity="warn",
         check=check_no_feed,
     ),

@@ -17,6 +17,7 @@ from babytracker.config import settings  # noqa: F401  # keep env/side effects
 from babytracker.db import engine, get_session
 from babytracker.models import Child, Measurement, Medication, MotherLog, Vital, WarningState
 from babytracker.services.timeline import day_range_utc, events_for_range
+from babytracker.services.warnings import estimate_feed_interval
 from babytracker.routes import diaper as diaper_routes
 from babytracker.routes import feed as feed_routes
 from babytracker.routes import growth as growth_routes
@@ -216,5 +217,17 @@ async def home(
         ctx["active_warnings"] = session.exec(
             select(WarningState).where(WarningState.active == True)  # noqa: E712
         ).all()
+
+        # Dynamisches Still-Intervall → nächste empfohlene Mahlzeit
+        now = datetime.now(TZ)
+        est = estimate_feed_interval(session, child, now)
+        ctx["feed_interval_hours"] = est.hours
+        ctx["feed_interval_base"] = est.base_hours
+        ctx["feed_interval_reasons"] = est.reasons
+        if ctx["feed_summary"].last_at:
+            from_last = (now - ctx["feed_summary"].last_at).total_seconds() / 3600
+            ctx["feed_next_in_min"] = int((est.hours - from_last) * 60)
+        else:
+            ctx["feed_next_in_min"] = None
 
     return templates.TemplateResponse(request, "home.html", ctx)

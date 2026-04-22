@@ -13,6 +13,7 @@ from babytracker.db import get_session
 from babytracker.models import Feeding
 from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_local_datetime
 from babytracker.services.daily import feed_summary, format_ago
+from babytracker.services.warnings import estimate_feed_interval
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
@@ -50,6 +51,13 @@ async def feed_index(
         .limit(15)
     ).all()
 
+    now = datetime.now(TZ)
+    est = estimate_feed_interval(session, child, now)
+    next_in_min: int | None = None
+    if summary.last_at:
+        from_last = (now - summary.last_at).total_seconds() / 3600
+        next_in_min = int((est.hours - from_last) * 60)
+
     return templates.TemplateResponse(
         request,
         "feed/index.html",
@@ -60,6 +68,10 @@ async def feed_index(
             "summary": summary,
             "recent": recent,
             "format_ago": format_ago,
+            "interval_hours": est.hours,
+            "interval_base": est.base_hours,
+            "interval_reasons": est.reasons,
+            "next_in_min": next_in_min,
         },
     )
 

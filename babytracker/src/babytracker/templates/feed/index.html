@@ -6,7 +6,7 @@
 
 <h1 class="text-xl font-bold mb-3">Ernährung</h1>
 
-<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4">
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-3">
   <div class="text-xs text-slate-500 uppercase tracking-wide mb-2">Heute</div>
   <div class="grid grid-cols-3 gap-2 text-center">
     <div>
@@ -26,6 +26,29 @@
     Letzte: <span class="font-semibold">{{ format_ago(summary.last_at) }}</span>
   </div>
 </div>
+
+{% if next_in_min is not none %}
+<div class="rounded-2xl border-2 p-4 mb-4
+            {% if next_in_min <= 0 %}border-rose-500 bg-rose-50 dark:bg-rose-900/20
+            {% elif next_in_min <= 30 %}border-amber-500 bg-amber-50 dark:bg-amber-900/20
+            {% else %}border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900{% endif %}">
+  <div class="text-xs uppercase tracking-wide mb-1
+              {% if next_in_min <= 0 %}text-rose-700 dark:text-rose-300
+              {% elif next_in_min <= 30 %}text-amber-700 dark:text-amber-300
+              {% else %}text-slate-500{% endif %}">
+    Nächste Mahlzeit empfohlen
+  </div>
+  <div class="text-xl font-bold">
+    {% if next_in_min <= 0 %}Jetzt – fällig seit {{ (-next_in_min) }} Min
+    {% elif next_in_min < 60 %}in ca. {{ next_in_min }} Min
+    {% else %}in ca. {{ (next_in_min // 60) }}h {{ '%02d' | format(next_in_min % 60) }}{% endif %}
+  </div>
+  <div class="text-xs text-slate-500 mt-1">
+    Intervall: {{ '%.1f' | format(interval_hours) }}h
+    <span class="text-slate-400">(Basis {{ '%.1f' | format(interval_base) }}h für Alter{% if interval_reasons %}, {{ interval_reasons | join(', ') }}{% endif %})</span>
+  </div>
+</div>
+{% endif %}
 
 <div class="grid grid-cols-2 gap-3 mb-6">
   <a href="{{ root }}/feed/new?kind=breast"
