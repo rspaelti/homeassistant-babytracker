@@ -11,6 +11,7 @@ from babytracker.models.medication import Medication
 from babytracker.models.milestone import Milestone
 from babytracker.models.mother_log import MotherLog
 from babytracker.models.note import Note
+from babytracker.models.notify_target import NotifyTarget
 from babytracker.models.photo import Photo
 from babytracker.models.sleep import SleepSession
 from babytracker.models.user import User
@@ -31,6 +32,7 @@ __all__ = [
     "Milestone",
     "MotherLog",
     "Note",
+    "NotifyTarget",
     "Photo",
     "SleepSession",
     "User",

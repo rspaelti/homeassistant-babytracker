@@ -53,6 +53,34 @@ async def notify_mobile(service_name: str, title: str, message: str, critical: b
     return await call_service("notify", service_name, data)
 
 
+async def list_mobile_app_notify_services() -> list[str]:
+    """Liefert alle verfügbaren `notify.mobile_app_*` Services aus HA.
+
+    Fragt die HA REST-API GET /api/services ab und filtert die notify-Domain.
+    Gibt eine Liste von Service-Namen ohne "notify." Prefix zurück.
+    """
+    if not settings.ha_url or not settings.ha_token:
+        return []
+    url = f"{settings.ha_url}/api/services"
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            r = await client.get(url, headers=_headers())
+        if r.status_code != 200:
+            log.warning("HA /api/services: %s", r.status_code)
+            return []
+        result: list[str] = []
+        for entry in r.json():
+            if entry.get("domain") != "notify":
+                continue
+            for svc_name in entry.get("services", {}):
+                if svc_name.startswith("mobile_app_"):
+                    result.append(svc_name)
+        return sorted(result)
+    except httpx.HTTPError as e:
+        log.warning("list_mobile_app_notify_services failed: %s", e)
+        return []
+
+
 async def get_state(entity_id: str) -> dict | None:
     if not settings.ha_url or not settings.ha_token:
         return None

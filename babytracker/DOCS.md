@@ -8,6 +8,10 @@
 | `owlet_entity_prefix` | `sensor.dream_sock_` | Prefix der Owlet-Dream-Sock-Entitäten in HA |
 | `log_level` | `info` | `debug` / `info` / `warning` / `error` |
 
+**Push-Benachrichtigungen** werden nicht hier konfiguriert, sondern direkt in der App:
+**Baby → Mehr → Warnungen → Push-Empfänger**. Dort kannst du beliebig viele
+`notify.mobile_app_*` Services aus HA auswählen.
+
 **Kind anlegen:** Direkt in der App unter **Wachstum** → du wirst automatisch zum Setup-Formular weitergeleitet.
 
 ## Zugriff

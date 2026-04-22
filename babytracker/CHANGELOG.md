@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — Push-Empfänger in der App konfigurieren
+
+- **Neue Tabelle `notify_targets`**: beliebig viele Push-Empfänger (z.B. Renés iPhone + Janas iPhone + Grosseltern)
+- **Auto-Discovery**: Die App fragt HA nach allen `notify.mobile_app_*` Services und bietet sie als Dropdown an. Manuelle Eingabe weiterhin möglich (Fallback).
+- **Pro Target**: Aktivieren/Deaktivieren, Löschen, und ein **Test**-Button der sofort eine Test-Push sendet.
+- **Scheduler** pusht jetzt an **alle aktivierten Targets** parallel (statt nur einer Service-Name in Config).
+- **`notify_service` aus Add-on-Config entfernt** — alles über UI. Falls bei bestehenden Installationen noch gesetzt: wird beim ersten Start einmalig migriert.
+- Integriert in `/warnings` → "Push-Empfänger"-Abschnitt.
+
 ## 0.4.3
 
 - Mehr-Hub aufgeräumt: nur noch Warnungen, Kind, weitere Einstellungen. Gesundheit/Meds waren doppelt mit Home und gehören nicht zu Einstellungen.

@@ -27,13 +27,8 @@
 {% endif %}
 
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Regeln</h2>
-<p class="text-xs text-slate-500 mb-3">
-  Pro Regel separat ein-/ausschaltbar. Push landet als Benachrichtigung auf dem Handy
-  (braucht <code>notify_service</code> in der Add-on-Config;
-  {% if notify_service_configured %}<span class="text-emerald-600">aktuell konfiguriert</span>{% else %}<span class="text-amber-600">aktuell nicht konfiguriert</span>{% endif %}).
-</p>
 
-<div class="space-y-2 mb-5">
+<div class="space-y-2 mb-6">
   {% for rule in rules %}
   {% set cfg = configs[rule.code] %}
   <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
@@ -67,6 +62,74 @@
   </div>
   {% endfor %}
 </div>
+
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Push-Empfänger</h2>
+<p class="text-xs text-slate-500 mb-3">
+  Benachrichtigungen werden an alle aktivierten Empfänger gesendet.
+  {% if not targets %}Ohne Empfänger keine Push-Nachricht.{% endif %}
+</p>
+
+{% if targets %}
+<div class="space-y-2 mb-3">
+  {% for t in targets %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold truncate">{{ t.label }}</div>
+        <div class="text-xs text-slate-500 truncate"><code>notify.{{ t.service_name }}</code></div>
+      </div>
+      <form method="post" action="{{ root }}/warnings/targets/{{ t.id }}/delete" onsubmit="return confirm('Empfänger entfernen?')" class="shrink-0">
+        <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Entfernen">🗑</button>
+      </form>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
+      <form method="post" action="{{ root }}/warnings/targets/{{ t.id }}/toggle" class="flex">
+        <input type="hidden" name="enabled" value="{{ '' if t.enabled else '1' }}">
+        <button type="submit"
+                class="w-full px-3 py-2 rounded-lg border
+                       {% if t.enabled %}bg-emerald-500 text-white border-emerald-500
+                       {% else %}bg-white dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700{% endif %}">
+          {% if t.enabled %}✓ Aktiv{% else %}Aus{% endif %}
+        </button>
+      </form>
+      <form method="post" action="{{ root }}/warnings/targets/{{ t.id }}/test" class="flex">
+        <button type="submit"
+                class="w-full px-3 py-2 rounded-lg border border-brand bg-white dark:bg-slate-900 text-brand">
+          🔔 Test
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" action="{{ root }}/warnings/targets/add"
+      class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3 mb-6 space-y-2">
+  <div class="text-xs font-medium text-slate-700 dark:text-slate-300">Empfänger hinzufügen</div>
+  {% if available_services %}
+  <select name="service_name" required
+          class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+    <option value="">— HA-Service auswählen —</option>
+    {% for s in available_services %}
+    <option value="{{ s }}">notify.{{ s }}</option>
+    {% endfor %}
+  </select>
+  {% else %}
+  <input type="text" name="service_name" required placeholder="z.B. mobile_app_renes_iphone"
+         class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+  <p class="text-xs text-slate-400">
+    {% if not ha_reachable %}⚠ HA aktuell nicht erreichbar (Dev-Modus?). Service-Name manuell eintragen.
+    {% else %}Keine weiteren Services verfügbar. Du kannst auch einen Namen manuell eintragen.{% endif %}
+  </p>
+  {% endif %}
+  <input type="text" name="label" placeholder="Anzeigename (optional, z.B. &quot;Janas iPhone&quot;)"
+         class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-2 rounded-lg text-sm">
+    Hinzufügen
+  </button>
+</form>
 
 {% if history %}
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
