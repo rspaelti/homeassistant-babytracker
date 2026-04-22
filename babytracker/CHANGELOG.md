@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.4 — Bugfix: Scheduler crashte mit tz-naive Datum
+
+**Bug-Fix:** `"🔄 Jetzt prüfen"` und der 2-Min-Scheduler warfen beide einen TypeError — SQLite liest `last_notified_at` tz-naiv zurück, während `now` tz-aware ist. Subtraktion crashte beim Renotify-Check.
+
+- `as_aware()` wird jetzt konsequent genutzt → Scheduler läuft durch
+- Globaler `asyncio.Lock` serialisiert Scheduler-Tick und manuellen Trigger → keine SQLite-Race-Condition mehr
+- Try/except um den ganzen Check-Job → Scheduler stirbt nie mehr still bei Exception
+
 ## 0.6.3 — Push-Fix: Reaktivierung von Warnungen
 
 **Bug-Fix:** Wenn eine Warnung (z.B. `no_feed_4h`) zwischenzeitlich inaktiv wurde (weil gestillt wurde) und später erneut aktiv wurde, hat das 6h-Debouncing fälschlicherweise den Push unterdrückt — `last_notified_at` war vom ersten Mal gesetzt.
