@@ -26,13 +26,32 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E👶%3C/text%3E%3C/svg%3E">
 
   <script>
-    // Auto Dark Mode 19:00–07:00
+    // Dark Mode: default dark. Modi: 'dark' / 'light' / 'auto' (Auto = 19:00–07:00 dark).
     (function () {
-      const h = new Date().getHours();
-      const forced = localStorage.getItem('bt_theme');
-      const dark = forced === 'dark' || (forced !== 'light' && (h >= 19 || h < 7));
+      const mode = localStorage.getItem('bt_theme') || 'dark';
+      let dark = true;
+      if (mode === 'light') dark = false;
+      else if (mode === 'auto') {
+        const h = new Date().getHours();
+        dark = (h >= 19 || h < 7);
+      }
       if (dark) document.documentElement.classList.add('dark');
+      window.__btTheme = mode;
     })();
+
+    function btSetTheme(mode) {
+      localStorage.setItem('bt_theme', mode);
+      const h = new Date().getHours();
+      let dark = mode === 'dark' || (mode === 'auto' && (h >= 19 || h < 7));
+      document.documentElement.classList.toggle('dark', dark);
+      window.__btTheme = mode;
+      document.dispatchEvent(new CustomEvent('bt-theme-changed', { detail: { mode } }));
+    }
+
+    function btToggleTheme() {
+      const cur = localStorage.getItem('bt_theme') || 'dark';
+      btSetTheme(cur === 'dark' ? 'light' : 'dark');
+    }
   </script>
 </head>
 <body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">
@@ -43,7 +62,14 @@
         <span>👶</span>
         <span>{{ child_name or "Baby" }}</span>
       </a>
-      <span class="text-xs text-slate-500 dark:text-slate-400">v{{ version }}</span>
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="btToggleTheme()" aria-label="Theme umschalten"
+                class="text-lg leading-none">
+          <span class="hidden dark:inline">☀️</span>
+          <span class="dark:hidden">🌙</span>
+        </button>
+        <span class="text-xs text-slate-500 dark:text-slate-400">v{{ version }}</span>
+      </div>
     </div>
   </header>
 

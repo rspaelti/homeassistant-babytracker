@@ -40,13 +40,35 @@
     <span class="text-slate-400">›</span>
   </a>
 
+  <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+    <div class="flex items-center gap-3 mb-3">
+      <span class="text-2xl">🎨</span>
+      <div>
+        <div class="font-semibold">Theme</div>
+        <div class="text-xs text-slate-500">Hell / Dunkel / Automatisch (19–07 Uhr dunkel)</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-2 text-sm" x-data="{ mode: localStorage.getItem('bt_theme') || 'dark' }"
+         @bt-theme-changed.document="mode = $event.detail.mode">
+      <button type="button" @click="btSetTheme('auto'); mode='auto'"
+              :class="mode === 'auto' ? 'bg-brand text-white border-brand' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'"
+              class="px-3 py-2 rounded-lg border">Auto</button>
+      <button type="button" @click="btSetTheme('light'); mode='light'"
+              :class="mode === 'light' ? 'bg-brand text-white border-brand' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'"
+              class="px-3 py-2 rounded-lg border">☀️ Hell</button>
+      <button type="button" @click="btSetTheme('dark'); mode='dark'"
+              :class="mode === 'dark' ? 'bg-brand text-white border-brand' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'"
+              class="px-3 py-2 rounded-lg border">🌙 Dunkel</button>
+    </div>
+  </div>
+
   <a href="{{ root }}/settings"
      class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
     <div class="flex items-center gap-3">
       <span class="text-2xl">⚙</span>
       <div>
         <div class="font-semibold">Weitere Einstellungen</div>
-        <div class="text-xs text-slate-500">Benutzer, Export, Theme · kommt später</div>
+        <div class="text-xs text-slate-500">Benutzer, Export · kommt später</div>
       </div>
     </div>
     <span class="text-slate-400">›</span>

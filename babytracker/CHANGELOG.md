@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 — Theme-Toggle
+
+- **Default ist jetzt Dunkel** (statt Auto nach Uhrzeit)
+- **Theme-Toggle im Header**: 🌙 / ☀️-Button oben rechts für schnelles Umschalten
+- **In Mehr**: Dreifach-Auswahl "Auto / Hell / Dunkel" mit persistenter Speicherung (localStorage)
+
 ## 0.6.0 — Phase 4 Mama + Tagesverlauf + Notizen
 
 ### 📋 Tagesverlauf (`/timeline`)
