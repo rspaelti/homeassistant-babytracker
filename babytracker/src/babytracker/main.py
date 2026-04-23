@@ -16,6 +16,7 @@ from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings  # noqa: F401  # keep env/side effects
 from babytracker.db import engine, get_session
 from babytracker.models import Child, Measurement, Medication, MotherLog, Vital, WarningState
+from babytracker.services.owlet_sync import fetch_live
 from babytracker.services.timeline import day_range_utc, events_for_range
 from babytracker.services.warnings import estimate_feed_interval
 from babytracker.routes import diaper as diaper_routes
@@ -31,6 +32,7 @@ from babytracker.routes import quick as quick_routes
 from babytracker.routes import setup as setup_routes
 from babytracker.routes import sleep as sleep_routes
 from babytracker.routes import timeline as timeline_routes
+from babytracker.routes import vitals as vitals_routes
 from babytracker.routes import warnings as warnings_routes
 from babytracker.scheduler import start_scheduler, stop_scheduler
 from babytracker.services.daily import (
@@ -89,6 +91,7 @@ app.include_router(notes_routes.router)
 app.include_router(timeline_routes.router)
 app.include_router(quick_routes.router)
 app.include_router(warnings_routes.router)
+app.include_router(vitals_routes.router)
 app.include_router(more_routes.router)
 app.include_router(placeholder_routes.router)
 
@@ -144,7 +147,7 @@ async def healthz() -> JSONResponse:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(
+async def home(  # noqa: PLR0912, PLR0915
     request: Request,
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -220,6 +223,8 @@ async def home(
                 WarningState.dismissed_at.is_(None),
             )
         ).all()
+
+        ctx["owlet_live"] = await fetch_live()
 
         # Dynamisches Still-Intervall → nächste empfohlene Mahlzeit
         now = datetime.now(TZ)

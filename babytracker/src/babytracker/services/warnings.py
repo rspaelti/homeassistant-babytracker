@@ -245,6 +245,16 @@ def check_no_feed(session: Session, child: Child, now: datetime) -> WarningItem 
     )
 
 
+def check_owlet_alerts(session: Session, child: Child, now: datetime) -> WarningItem | None:
+    """Synchroner Owlet-Check: liest aktuelle binary_sensor-States aus HA-State-Cache.
+
+    Der async-fetch_live passt nicht in den sync-check Pattern. Wir lesen
+    stattdessen den letzten Sync-Snapshot aus dem Buffer oder verzichten hier.
+    Die echten Owlet-Alerts werden vom Scheduler-Owlet-Job direkt in WarningState geschrieben.
+    """
+    return None  # placeholder, Owlet-Alerts laufen über separaten Scheduler-Pfad
+
+
 def check_percentile_jump(session: Session, child: Child, now: datetime) -> WarningItem | None:
     measurements = session.exec(
         select(Measurement)

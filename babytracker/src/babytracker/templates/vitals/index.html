@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}Vitalwerte · {{ child_name }}{% endblock %}
+
+{% block content %}
+
+<h1 class="text-xl font-bold mb-3">Vitalwerte · Owlet</h1>
+
+{% if not live.available %}
+<div class="rounded-2xl border-2 border-amber-500 bg-amber-50 dark:bg-amber-900/20 p-4 mb-4">
+  <div class="font-semibold text-amber-700 dark:text-amber-300">HA nicht erreichbar</div>
+  <div class="text-sm mt-1">Im Dev-Modus ohne HA-Token keine Daten.</div>
+</div>
+{% elif not live.sock_worn %}
+<div class="rounded-2xl border-2 border-slate-400 bg-slate-50 dark:bg-slate-900 p-4 mb-4">
+  <div class="font-semibold">🧦 Sock nicht getragen</div>
+  <div class="text-sm mt-1 text-slate-500">Keine Live-Werte. Historische Daten unten.</div>
+</div>
+{% else %}
+<div class="grid grid-cols-2 gap-3 mb-4">
+  <div class="rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 p-4 text-center">
+    <div class="text-xs uppercase text-emerald-700 dark:text-emerald-300">SpO2</div>
+    <div class="text-3xl font-bold">{{ '%.0f' | format(live.spo2) if live.spo2 else '–' }}%</div>
+    {% if live.spo2_avg10 %}<div class="text-xs text-slate-500">10-Min-Ø {{ '%.0f' | format(live.spo2_avg10) }}%</div>{% endif %}
+  </div>
+  <div class="rounded-2xl border-2 border-rose-500 bg-rose-50 dark:bg-rose-900/20 p-4 text-center">
+    <div class="text-xs uppercase text-rose-700 dark:text-rose-300">❤️ Puls</div>
+    <div class="text-3xl font-bold">{{ '%.0f' | format(live.heart_rate) if live.heart_rate else '–' }}</div>
+    <div class="text-xs text-slate-500">bpm</div>
+  </div>
+  <div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-center">
+    <div class="text-xs uppercase text-slate-500">🌡️ Hauttemperatur</div>
+    <div class="text-2xl font-bold">{{ '%.1f' | format(live.temp_skin) if live.temp_skin else '–' }} °C</div>
+  </div>
+  <div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-center">
+    <div class="text-xs uppercase text-slate-500">😴 Zustand · 🔋</div>
+    <div class="text-lg font-semibold">{{ live.sleep_state or '–' }}</div>
+    <div class="text-xs text-slate-500">{{ '%.0f' | format(live.battery_pct) if live.battery_pct else '–' }}% Batterie</div>
+  </div>
+</div>
+{% endif %}
+
+<h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Letzte 24 h (10-Min-Aggregate)</h2>
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 mb-3">
+  <canvas id="chart" height="280"></canvas>
+</div>
+
+<p class="text-xs text-slate-400 mt-2">Live-Werte aktualisieren beim Seitenaufruf. Aggregate werden alle 10 Min. gespeichert.</p>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    const seriesSpO2 = {{ series.spo2 | tojson }};
+    const seriesHR = {{ series.heart_rate | tojson }};
+    const seriesT = {{ series.temp_skin | tojson }};
+    const dark = document.documentElement.classList.contains('dark');
+    const grid = dark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.15)';
+    const text = dark ? '#cbd5e1' : '#334155';
+
+    function points(arr) {
+      return arr.map(([t, v]) => ({ x: t, y: v }));
+    }
+
+    new Chart(document.getElementById('chart').getContext('2d'), {
+      type: 'line',
+      data: {
+        datasets: [
+          { label: 'SpO₂ %', data: points(seriesSpO2), borderColor: '#10b981', backgroundColor: '#10b981', pointRadius: 1.5, yAxisID: 'y' },
+          { label: 'Puls bpm', data: points(seriesHR), borderColor: '#e11d48', backgroundColor: '#e11d48', pointRadius: 1.5, yAxisID: 'yhr' },
+          { label: 'Temp °C', data: points(seriesT), borderColor: '#f59e0b', backgroundColor: '#f59e0b', pointRadius: 1.5, yAxisID: 'yt' },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { type: 'time', time: { unit: 'hour' }, grid: { color: grid }, ticks: { color: text } },
+          y: { position: 'left', title: { display: true, text: 'SpO₂/%', color: text }, grid: { color: grid }, ticks: { color: text }, min: 80, max: 100 },
+          yhr: { position: 'right', title: { display: true, text: 'bpm', color: text }, grid: { drawOnChartArea: false }, ticks: { color: text }, min: 60, max: 220 },
+          yt: { display: false },
+        },
+        plugins: { legend: { labels: { color: text, font: { size: 11 } } } },
+        interaction: { mode: 'nearest', intersect: false },
+      }
+    });
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+{% endblock %}

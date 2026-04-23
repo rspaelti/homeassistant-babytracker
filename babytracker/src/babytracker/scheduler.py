@@ -16,6 +16,11 @@ from babytracker.db import engine
 from babytracker.models import Child, NotifyTarget, WarningState
 from babytracker.services.daily import as_aware
 from babytracker.services.ha_client import notify_mobile
+from babytracker.services.owlet_sync import (
+    any_active_alert,
+    collect_snapshot,
+    flush_aggregates,
+)
 from babytracker.services.warnings import is_push_enabled, run_all
 
 log = logging.getLogger(__name__)
@@ -144,6 +149,68 @@ async def _check_warnings_impl() -> None:
     )
 
 
+async def _owlet_alerts_job() -> None:
+    """Prüft alle Owlet-Alert-Binärsensoren und erstellt/löscht WarningStates."""
+    try:
+        alerts = await any_active_alert()
+    except Exception:
+        log.exception("_owlet_alerts_job: fetch failed")
+        return
+
+    now = datetime.now(TZ)
+    active_codes: set[str] = {code for code, _, _ in alerts}
+
+    with Session(engine) as session:
+        child = session.exec(
+            select(Child).where(Child.active == True).order_by(Child.id)  # noqa: E712
+        ).first()
+        if not child:
+            return
+
+        for code, title, severity in alerts:
+            state = session.get(WarningState, code)
+            if not state:
+                state = WarningState(
+                    code=code,
+                    child_id=child.id,
+                    first_seen_at=now,
+                    last_seen_at=now,
+                    active=True,
+                    severity=severity,
+                    title=title,
+                    message=title,
+                )
+                session.add(state)
+
+                if is_push_enabled(session, code):
+                    targets = session.exec(
+                        select(NotifyTarget).where(NotifyTarget.enabled == True)  # noqa: E712
+                    ).all()
+                    for t in targets:
+                        await notify_mobile(
+                            t.service_name,
+                            f"Baby: {title}",
+                            title,
+                            critical=(severity == "critical"),
+                        )
+                    if targets:
+                        state.last_notified_at = now
+            else:
+                state.last_seen_at = now
+                state.active = True
+
+        # Inaktivieren wenn Owlet-Alert nicht mehr aktiv
+        for w_state in session.exec(
+            select(WarningState).where(WarningState.code.startswith("owlet_"))
+        ).all():
+            if w_state.code not in active_codes:
+                w_state.active = False
+                w_state.last_notified_at = None
+                w_state.dismissed_at = None
+
+        session.commit()
+
+
 def _migrate_legacy_notify_service() -> None:
     """Überträgt ``BT_NOTIFY_SERVICE`` (Add-on-Config-Altfeld) einmalig in die DB."""
     if not settings.notify_service:
@@ -187,6 +254,17 @@ def start_scheduler() -> AsyncIOScheduler:
         check_warnings_job, "interval", minutes=2, id="check_warnings", max_instances=1
     )
 
+    # Owlet Dream Sock – Live-Snapshots alle 30 s, Aggregat-Flush alle 10 min
+    scheduler.add_job(
+        collect_snapshot, "interval", seconds=30, id="owlet_collect", max_instances=1,
+    )
+    scheduler.add_job(
+        flush_aggregates, "interval", minutes=10, id="owlet_flush", max_instances=1,
+    )
+    scheduler.add_job(
+        _owlet_alerts_job, "interval", seconds=60, id="owlet_alerts", max_instances=1,
+    )
+
     # Tägliche Reminder 09:00 + 10:00
     scheduler.add_job(
         remind_weight_morning, CronTrigger(hour=9, minute=0, timezone=TZ),
@@ -215,7 +293,10 @@ def start_scheduler() -> AsyncIOScheduler:
     )
 
     scheduler.start()
-    log.info("Scheduler started: warnings every 2 min + daily/weekly reminders")
+    log.info(
+        "Scheduler started: warnings every 2 min, Owlet every 30s/10min/60s, "
+        "daily/weekly reminders"
+    )
     return scheduler
 
 

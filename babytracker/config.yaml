@@ -1,5 +1,5 @@
 name: "Baby-Tracker"
-version: "0.7.2"
+version: "0.8.0"
 slug: babytracker
 description: "Tracking für Wachstum (WHO-Perzentilen), Ernährung, Schlaf, Vitalwerte, Gesundheit und Wochenbett"
 url: "https://github.com/rspaelti/homeassistant-babytracker"
@@ -19,7 +19,7 @@ map:
   - share:rw
 options:
   timezone: "Europe/Zurich"
-  owlet_entity_prefix: "sensor.dream_sock_"
+  owlet_entity_prefix: "owled_smart_sock_sofia_"
   log_level: "info"
 schema:
   timezone: str
