@@ -109,10 +109,15 @@
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
 <div class="space-y-2">
   {% set cat_labels = {'clexane': ('💉', 'Clexane'), 'thrombosis_check': ('🦵', 'Thrombose'), 'wound': ('🩹', 'Wunde'), 'bp': ('❤️', 'Blutdruck'), 'epds': ('📋', 'EPDS'), 'mood': ('😊', 'Stimmung'), 'lochia': ('🩸', 'Wochenfluss')} %}
+  {% set editable_cats = ('clexane', 'thrombosis_check', 'wound', 'bp', 'lochia') %}
   {% for m in recent %}
   {% set meta = cat_labels.get(m.category, ('🤱', m.category)) %}
   <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-start justify-between gap-2">
+    {% if m.category in editable_cats %}
+    <a href="{{ root }}/mother/{{ m.category }}/{{ m.id }}/edit" class="flex-1 min-w-0 block">
+    {% else %}
     <div class="flex-1 min-w-0">
+    {% endif %}
       <div class="font-semibold">{{ meta[0] }} {{ meta[1] }}
         {% if m.value_num is not none and m.category == 'epds' %} · Score {{ m.value_num|int }}{% endif %}
         {% if m.value_num is not none and m.category == 'clexane' %} · {{ m.value_num|int }} mg{% endif %}
@@ -120,7 +125,7 @@
       </div>
       <div class="text-xs text-slate-500">{{ m.logged_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(m.logged_at) }}</div>
       {% if m.notes %}<div class="text-xs text-slate-400 italic truncate">{{ m.notes }}</div>{% endif %}
-    </div>
+    {% if m.category in editable_cats %}</a>{% else %}</div>{% endif %}
     <form method="post" action="{{ root }}/mother/{{ m.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
       <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
     </form>

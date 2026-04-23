@@ -1,14 +1,24 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ category_label }} · {{ child_name }}{% endblock %}
+{% set is_edit = (entry is defined and entry) or (entry_temp is defined and entry_temp) %}
+{% set max_dt = now_local_max if now_local_max is defined else now_local %}
+
+{% block title %}{{ (category_label + ' bearbeiten') if is_edit else category_label }} · {{ child_name }}{% endblock %}
 
 {% block content %}
+{% if is_edit and category == 'temp' %}
+  {% set action = root + '/health/temp/' + entry_temp.id|string + '/edit' %}
+{% elif is_edit %}
+  {% set action = root + '/health/event/' + entry.id|string + '/edit' %}
+{% else %}
+  {% set action = root + '/health/new' %}
+{% endif %}
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ root }}/health" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
-<h1 class="text-xl font-bold mb-4">{{ category_label }}</h1>
+<h1 class="text-xl font-bold mb-4">{{ (category_label + ' bearbeiten') if is_edit else category_label }}</h1>
 
 <div class="flex gap-1 mb-4 text-xs overflow-x-auto">
   {% for cat_key, cat_label, _ in categories %}
@@ -21,12 +31,12 @@
   {% endfor %}
 </div>
 
-<form method="post" action="{{ root }}/health/new" class="space-y-4" x-data="{ tempVal: 37.0 }">
+<form method="post" action="{{ action }}" class="space-y-4" x-data="{ tempVal: {{ entry_temp.value if is_edit and entry_temp else 37.0 }} }">
   <input type="hidden" name="category" value="{{ category }}">
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
-    <input type="datetime-local" name="recorded_at" required value="{{ now_local }}" max="{{ now_local }}"
+    <input type="datetime-local" name="recorded_at" required value="{{ now_local }}" max="{{ max_dt }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
@@ -35,6 +45,7 @@
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Temperatur (°C)</span>
     <input type="number" name="temp_value" step="0.1" min="34" max="42" required
            x-model.number="tempVal" inputmode="decimal"
+           value="{{ entry_temp.value if is_edit and entry_temp else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-2xl font-semibold text-center">
   </label>
   <div x-show="tempVal >= {{ fever_threshold }}"
@@ -51,7 +62,8 @@
     <div class="grid grid-cols-4 gap-2 text-sm">
       {% for lvl, label, color in jaundice_levels %}
       <label class="cursor-pointer">
-        <input type="radio" name="score" value="{{ lvl }}" required class="peer sr-only">
+        <input type="radio" name="score" value="{{ lvl }}" required class="peer sr-only"
+               {% if is_edit and entry.score == lvl %}checked{% endif %}>
         <div class="text-center rounded-lg border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden
                     peer-checked:ring-4 peer-checked:ring-brand peer-checked:border-brand">
           <div class="h-8 {{ color }}"></div>
@@ -69,7 +81,8 @@
     <div class="grid grid-cols-3 gap-2 text-sm">
       {% for val, lbl in umbilical_status %}
       <label class="cursor-pointer">
-        <input type="radio" name="status_value" value="{{ val }}" required class="peer sr-only">
+        <input type="radio" name="status_value" value="{{ val }}" required class="peer sr-only"
+               {% if is_edit and entry.status == val %}checked{% endif %}>
         <div class="text-center px-2 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                     peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
           {{ lbl }}
@@ -86,7 +99,8 @@
     <div class="grid grid-cols-2 gap-2 text-sm">
       {% for val, lbl in skin_status %}
       <label class="cursor-pointer">
-        <input type="radio" name="status_value" value="{{ val }}" required class="peer sr-only">
+        <input type="radio" name="status_value" value="{{ val }}" required class="peer sr-only"
+               {% if is_edit and entry.status == val %}checked{% endif %}>
         <div class="text-center px-3 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                     peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
           {{ lbl }}
@@ -104,7 +118,7 @@
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
     <textarea name="notes" maxlength="1000" rows="3"
-              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"></textarea>
+              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">{{ entry.notes if is_edit and entry and entry.notes else '' }}</textarea>
   </label>
   {% endif %}
 

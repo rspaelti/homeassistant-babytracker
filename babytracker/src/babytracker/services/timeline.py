@@ -36,6 +36,7 @@ class TimelineEvent:
     title: str
     detail: str = ""
     extra_class: str = ""  # optional CSS-Klasse (z.B. für kritisch)
+    edit_url: str = ""  # relativer Pfad für Edit-Link
 
 
 def _feed_line(f: Feeding) -> TimelineEvent:
@@ -63,6 +64,7 @@ def _feed_line(f: Feeding) -> TimelineEvent:
         icon="🤱" if f.kind == "breast" else "🍼",
         title=("Stillen" if f.kind == "breast" else "Flasche"),
         detail=detail,
+        edit_url=f"/feed/{f.id}/edit",
     )
 
 
@@ -93,10 +95,12 @@ def _diaper_line(d: Diaper) -> TimelineEvent:
         icon=icon,
         title="Windel",
         detail=detail,
+        edit_url=f"/diaper/{d.id}/edit",
     )
 
 
 def _sleep_line(s: SleepSession) -> list[TimelineEvent]:
+    edit = f"/sleep/{s.id}/edit"
     events = [
         TimelineEvent(
             when=as_aware(s.started_at),
@@ -104,6 +108,7 @@ def _sleep_line(s: SleepSession) -> list[TimelineEvent]:
             icon="😴",
             title="Eingeschlafen",
             detail=("📍 " + s.location) if s.location else "",
+            edit_url=edit,
         )
     ]
     if s.ended_at:
@@ -115,6 +120,7 @@ def _sleep_line(s: SleepSession) -> list[TimelineEvent]:
                 icon="⏰",
                 title="Aufgewacht",
                 detail=f"{dur} Min geschlafen" + ((" · " + s.notes) if s.notes else ""),
+                edit_url=edit,
             )
         )
     return events
@@ -129,6 +135,7 @@ def _vital_line(v: Vital) -> TimelineEvent:
             title="Temperatur",
             detail=f"{v.value:.1f} °C",
             extra_class=("text-rose-600 font-semibold" if v.value >= 38.0 else ""),
+            edit_url=f"/health/temp/{v.id}/edit",
         )
     return TimelineEvent(
         when=as_aware(v.measured_at),
@@ -160,6 +167,7 @@ def _health_line(e: HealthEvent) -> TimelineEvent:
         icon=icon,
         title=title,
         detail=" · ".join(parts) if parts else "",
+        edit_url=f"/health/event/{e.id}/edit",
     )
 
 
@@ -173,6 +181,7 @@ def _med_line(m: Medication) -> TimelineEvent:
         icon="💊",
         title=m.med_name,
         detail=detail,
+        edit_url=f"/meds/{m.id}/edit",
     )
 
 
@@ -195,12 +204,16 @@ def _mother_line(m: MotherLog) -> TimelineEvent:
         parts.append(m.value_text)
     if m.notes:
         parts.append(m.notes)
+    edit = f"/mother/{m.category}/{m.id}/edit" if m.category in (
+        "clexane", "thrombosis_check", "wound", "bp", "lochia"
+    ) else ""
     return TimelineEvent(
         when=as_aware(m.logged_at),
         category="mother",
         icon=icon,
         title=f"Mama · {title}",
         detail=" · ".join(parts) if parts else "",
+        edit_url=edit,
     )
 
 
@@ -211,6 +224,7 @@ def _note_line(n: Note) -> TimelineEvent:
         icon="📝",
         title="Notiz",
         detail=n.body,
+        edit_url=f"/notes/{n.id}/edit",
     )
 
 
@@ -229,6 +243,7 @@ def _measurement_line(m: Measurement) -> TimelineEvent:
         icon=icons.get(m.kind, "📊"),
         title=labels.get(m.kind, m.kind),
         detail=detail,
+        edit_url=f"/growth/{m.id}/edit",
     )
 
 

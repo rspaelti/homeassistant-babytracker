@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.1 — Quittieren wirklich verdrahtet + editierbare Einträge + robustere iOS-Tastatur
+
+### 🐛 Fixes
+- **Quittieren 404**: Die `/warnings/{code}/dismiss`- und `/undismiss`-Routen waren in 0.7.0 deklariert aber nicht im Router registriert (Edit-Konflikt). Nachgereicht.
+- **iOS-Tastatur** robuster: Mehrfach-Scroll bei Focus (100ms/350ms/650ms), visualViewport-Resize-Listener scrollt nach, `body.keyboard-open`-Klasse blendet Fixed-Footer-Nav aus.
+- **/mother 500**: `from_json`-Filter war nur in main-Template-Env registriert, nicht im mother-Router — jetzt registriert.
+
+### ✨ Editierbare Einträge — Task 24
+Klick auf einen Eintrag in der Liste öffnet das Formular mit vorbefüllten Werten:
+- **Feed** (Stillen/Flasche) · **Diaper** · **Sleep** · **Meds** · **Growth** · **Notes**
+- **Health**: Temperatur und Ereignisse (Ikterus/Nabel/Haut/Schreiphase) separat
+- **Mother**: Clexane · Thrombose-Check · Wunde · Blutdruck · Wochenfluss (EPDS/Stimmung bleiben "nur neu", weil Score-Historie wichtiger als Nachbearbeitung)
+
+### ✨ Tagesverlauf klickbar
+Jeder Eintrag im `/timeline`-Verlauf ist jetzt ein Link zum jeweiligen Edit-Form (für die unterstützten Kategorien).
+
 ## 0.7.0 — Quittieren, Mengen, Reminder, iOS-Tastatur, Clexane-Fix
 
 ### 🐛 Fixes

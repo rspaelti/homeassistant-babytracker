@@ -24,6 +24,18 @@ from babytracker.services.mother import (
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
+
+def _from_json_filter(value: str | None):
+    if not value:
+        return {}
+    try:
+        return json.loads(value)
+    except (ValueError, TypeError):
+        return {}
+
+
+templates.env.filters["from_json"] = _from_json_filter
+
 WOUND_STATUS = [
     ("ok", "Unauffällig"),
     ("red", "Gerötet"),
@@ -445,6 +457,173 @@ async def lochia_create(
 
 
 # --- Delete -------------------------------------------------------------------
+
+# --- Edit-Routen (generisch für 5 Kategorien) --------------------------------
+
+def _get_log_for_edit(session: Session, log_id: int, expected_category: str) -> MotherLog | None:
+    m = session.get(MotherLog, log_id)
+    if not m or m.category != expected_category:
+        return None
+    return m
+
+
+def _edit_ctx(request, user, child, entry, extra):
+    from babytracker.routes._shared import TZ as _TZ
+    logged_local = entry.logged_at if entry.logged_at.tzinfo else entry.logged_at.replace(tzinfo=_TZ)
+    return {
+        "user": user,
+        "version": request.app.version,
+        "child_name": child.name if child else "Baby",
+        "now_local": logged_local.astimezone(_TZ).strftime("%Y-%m-%dT%H:%M"),
+        "now_local_max": now_local_iso(),
+        "entry": entry,
+        "is_edit": True,
+        **extra,
+    }
+
+
+@router.get("/mother/clexane/{log_id}/edit", response_class=HTMLResponse)
+async def clexane_edit_form(request: Request, log_id: int, user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "clexane")
+    if not entry:
+        return _redirect_mother(request)
+    return templates.TemplateResponse(request, "mother/clexane_new.html", _edit_ctx(request, user, get_child(session), entry, {}))
+
+
+@router.post("/mother/clexane/{log_id}/edit")
+async def clexane_edit_save(request: Request, log_id: int, logged_at: str = Form(...), dose_mg: float = Form(60.0), notes: str = Form(""), user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "clexane")
+    if not entry:
+        return _redirect_mother(request)
+    entry.logged_at = parse_past_datetime(logged_at)
+    entry.value_num = dose_mg
+    entry.value_text = f"{dose_mg:.0f} mg s.c."
+    entry.notes = notes.strip() or None
+    session.add(entry)
+    session.commit()
+    return _redirect_mother(request)
+
+
+@router.get("/mother/thrombosis_check/{log_id}/edit", response_class=HTMLResponse)
+async def thrombosis_edit_form(request: Request, log_id: int, user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "thrombosis_check")
+    if not entry:
+        return _redirect_mother(request)
+    # Parse left/right aus value_text "L: ok, R: ok"
+    left, right = "ok", "ok"
+    if entry.value_text:
+        for part in entry.value_text.split(","):
+            p = part.strip()
+            if p.startswith("L:"): left = p[2:].strip()
+            elif p.startswith("R:"): right = p[2:].strip()
+    return templates.TemplateResponse(
+        request, "mother/thrombosis_new.html",
+        _edit_ctx(request, user, get_child(session), entry, {
+            "results": THROMBOSIS_RESULT, "prefill_left": left, "prefill_right": right,
+        }),
+    )
+
+
+@router.post("/mother/thrombosis_check/{log_id}/edit")
+async def thrombosis_edit_save(request: Request, log_id: int, logged_at: str = Form(...), left: str = Form("ok"), right: str = Form("ok"), notes: str = Form(""), user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "thrombosis_check")
+    if not entry:
+        return _redirect_mother(request)
+    if left not in dict(THROMBOSIS_RESULT) or right not in dict(THROMBOSIS_RESULT):
+        raise HTTPException(status_code=400, detail="Ungültiger Wert")
+    entry.logged_at = parse_past_datetime(logged_at)
+    entry.value_text = f"L: {left}, R: {right}"
+    entry.notes = notes.strip() or None
+    session.add(entry); session.commit()
+    return _redirect_mother(request)
+
+
+@router.get("/mother/wound/{log_id}/edit", response_class=HTMLResponse)
+async def wound_edit_form(request: Request, log_id: int, user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "wound")
+    if not entry:
+        return _redirect_mother(request)
+    return templates.TemplateResponse(request, "mother/wound_new.html", _edit_ctx(request, user, get_child(session), entry, {"wound_status": WOUND_STATUS}))
+
+
+@router.post("/mother/wound/{log_id}/edit")
+async def wound_edit_save(request: Request, log_id: int, logged_at: str = Form(...), status: str = Form("ok"), notes: str = Form(""), user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "wound")
+    if not entry:
+        return _redirect_mother(request)
+    if status not in dict(WOUND_STATUS):
+        raise HTTPException(status_code=400, detail="Ungültiger Status")
+    entry.logged_at = parse_past_datetime(logged_at)
+    entry.value_text = status
+    entry.notes = notes.strip() or None
+    session.add(entry); session.commit()
+    return _redirect_mother(request)
+
+
+@router.get("/mother/bp/{log_id}/edit", response_class=HTMLResponse)
+async def bp_edit_form(request: Request, log_id: int, user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "bp")
+    if not entry:
+        return _redirect_mother(request)
+    vals = json.loads(entry.value_text) if entry.value_text else {}
+    return templates.TemplateResponse(
+        request, "mother/bp_new.html",
+        _edit_ctx(request, user, get_child(session), entry, {
+            "prefill_sys": vals.get("systolic"), "prefill_dia": vals.get("diastolic"),
+            "prefill_pulse": vals.get("pulse"),
+        }),
+    )
+
+
+@router.post("/mother/bp/{log_id}/edit")
+async def bp_edit_save(request: Request, log_id: int, logged_at: str = Form(...), systolic: int = Form(...), diastolic: int = Form(...), pulse: int = Form(0), notes: str = Form(""), user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "bp")
+    if not entry:
+        return _redirect_mother(request)
+    if not (70 <= systolic <= 220) or not (40 <= diastolic <= 140):
+        raise HTTPException(status_code=400, detail="Blutdruckwerte unrealistisch")
+    if pulse and not (30 <= pulse <= 220):
+        raise HTTPException(status_code=400, detail="Puls unrealistisch")
+    payload = {"systolic": systolic, "diastolic": diastolic}
+    if pulse: payload["pulse"] = pulse
+    entry.logged_at = parse_past_datetime(logged_at)
+    entry.value_num = float(systolic)
+    entry.value_text = json.dumps(payload)
+    entry.notes = notes.strip() or None
+    session.add(entry); session.commit()
+    return _redirect_mother(request)
+
+
+@router.get("/mother/lochia/{log_id}/edit", response_class=HTMLResponse)
+async def lochia_edit_form(request: Request, log_id: int, user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "lochia")
+    if not entry:
+        return _redirect_mother(request)
+    color, amount = "red", "normal"
+    if entry.value_text and "/" in entry.value_text:
+        color, amount = entry.value_text.split("/", 1)
+    return templates.TemplateResponse(
+        request, "mother/lochia_new.html",
+        _edit_ctx(request, user, get_child(session), entry, {
+            "colors": LOCHIA_COLOR, "amounts": LOCHIA_AMOUNT,
+            "prefill_color": color, "prefill_amount": amount,
+        }),
+    )
+
+
+@router.post("/mother/lochia/{log_id}/edit")
+async def lochia_edit_save(request: Request, log_id: int, logged_at: str = Form(...), color: str = Form("red"), amount: str = Form("normal"), notes: str = Form(""), user: CurrentUser = Depends(get_current_user), session: Session = Depends(get_session)):
+    entry = _get_log_for_edit(session, log_id, "lochia")
+    if not entry:
+        return _redirect_mother(request)
+    if color not in dict(LOCHIA_COLOR) or amount not in dict(LOCHIA_AMOUNT):
+        raise HTTPException(status_code=400, detail="Ungültiger Wert")
+    entry.logged_at = parse_past_datetime(logged_at)
+    entry.value_text = f"{color}/{amount}"
+    entry.notes = notes.strip() or None
+    session.add(entry); session.commit()
+    return _redirect_mother(request)
+
 
 @router.post("/mother/{log_id}/delete")
 async def mother_delete(

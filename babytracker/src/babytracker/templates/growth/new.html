@@ -1,16 +1,20 @@
 {% extends "layout.html" %}
 
-{% block title %}Neue Messung · {{ child_name }}{% endblock %}
+{% set is_edit = entry is defined and entry %}
+{% set max_dt = now_local_max if now_local_max is defined else now_local %}
+
+{% block title %}{{ 'Messung bearbeiten' if is_edit else 'Neue Messung' }} · {{ child_name }}{% endblock %}
 
 {% block content %}
+{% set action = (root + '/growth/' + entry.id|string + '/edit') if is_edit else (root + '/growth/new') %}
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ root }}/growth?kind={{ kind }}" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
-<h1 class="text-xl font-bold mb-4">Neue {{ label }}-Messung</h1>
+<h1 class="text-xl font-bold mb-4">{{ 'Messung bearbeiten' if is_edit else 'Neue ' + label + '-Messung' }}</h1>
 
-<form method="post" action="{{ root }}/growth/new" class="space-y-4">
+<form method="post" action="{{ action }}" class="space-y-4">
   <input type="hidden" name="kind" value="{{ kind }}">
 
   <div class="flex gap-2 text-sm">
@@ -31,13 +35,14 @@
            min="{{ 500 if kind == 'weight' else (30 if kind == 'length' else 25) }}"
            max="{{ 30000 if kind == 'weight' else (150 if kind == 'length' else 60) }}"
            inputmode="decimal"
+           value="{{ (entry.value|int if kind == 'weight' else entry.value) if is_edit else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold"
            placeholder="z.B. {{ '3820' if kind == 'weight' else ('55.0' if kind == 'length' else '35.0') }}">
   </label>
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
-    <input type="datetime-local" name="measured_at" required value="{{ now_local }}" max="{{ now_local }}"
+    <input type="datetime-local" name="measured_at" required value="{{ now_local }}" max="{{ max_dt }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
@@ -46,7 +51,8 @@
     <div class="grid grid-cols-3 gap-2 text-sm">
       {% for val, lbl in [('home', 'Zuhause'), ('doctor', 'Arzt'), ('hospital', 'Spital')] %}
       <label class="cursor-pointer">
-        <input type="radio" name="source" value="{{ val }}" class="peer sr-only" {% if loop.first %}checked{% endif %}>
+        <input type="radio" name="source" value="{{ val }}" class="peer sr-only"
+               {% if is_edit and entry.source == val %}checked{% elif not is_edit and loop.first %}checked{% endif %}>
         <div class="text-center px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                     peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
           {{ lbl }}
@@ -58,7 +64,7 @@
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
-    <input type="text" name="notes" maxlength="500"
+    <input type="text" name="notes" maxlength="500" value="{{ entry.notes or '' if is_edit else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
   </label>
 

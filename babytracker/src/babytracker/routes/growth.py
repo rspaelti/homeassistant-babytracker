@@ -150,6 +150,89 @@ async def growth_create(
     return RedirectResponse(url=f"{request.scope.get('root_path', '')}/growth?kind={kind}", status_code=303)
 
 
+@router.get("/growth/{measurement_id}/edit", response_class=HTMLResponse)
+async def growth_edit_form(
+    request: Request,
+    measurement_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    from babytracker.routes._shared import now_local_iso as _now_local_iso
+    child = _get_child(session)
+    if not child:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/setup/child", status_code=303)
+    entry = session.get(Measurement, measurement_id)
+    if not entry or entry.child_id != child.id:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/growth", status_code=303)
+
+    m_local = entry.measured_at
+    if m_local.tzinfo is None:
+        m_local = m_local.replace(tzinfo=TZ)
+    return templates.TemplateResponse(
+        request, "growth/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name,
+            "kind": entry.kind,
+            "kinds": list(KIND_LABELS.items()),
+            "label": KIND_LABELS[entry.kind],
+            "unit": KIND_UNITS[entry.kind],
+            "now_local": m_local.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": _now_local_iso(),
+            "entry": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/growth/{measurement_id}/edit")
+async def growth_edit_save(
+    request: Request,
+    measurement_id: int,
+    kind: str = Form(...),
+    value: float = Form(...),
+    measured_at: str = Form(...),
+    source: str = Form("home"),
+    notes: str = Form(""),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    if kind not in KIND_LABELS:
+        raise HTTPException(status_code=400, detail="Unbekannte Metrik")
+    child = _get_child(session)
+    if not child:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/setup/child", status_code=303)
+    entry = session.get(Measurement, measurement_id)
+    if not entry or entry.child_id != child.id:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/growth", status_code=303)
+
+    if kind == "weight" and not (500 <= value <= 30000):
+        raise HTTPException(status_code=400, detail="Gewicht muss 500–30000 g sein")
+    if kind == "length" and not (30 <= value <= 150):
+        raise HTTPException(status_code=400, detail="Länge muss 30–150 cm sein")
+    if kind == "head" and not (25 <= value <= 60):
+        raise HTTPException(status_code=400, detail="Kopfumfang muss 25–60 cm sein")
+
+    from babytracker.routes._shared import parse_past_datetime
+    try:
+        dt_local = parse_past_datetime(measured_at)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+
+    entry.kind = kind
+    entry.value = value
+    entry.measured_at = dt_local
+    entry.source = source if source in {"home", "doctor", "hospital"} else "home"
+    entry.notes = notes.strip() or None
+    session.add(entry)
+    session.commit()
+    root = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{root}/growth?kind={kind}", status_code=303)
+
+
 @router.post("/growth/{measurement_id}/delete")
 async def growth_delete(
     request: Request,

@@ -1,26 +1,31 @@
 {% extends "layout.html" %}
 
-{% block title %}Schlaf eintragen · {{ child_name }}{% endblock %}
+{% set is_edit = entry is defined and entry %}
+{% set max_dt = now_local_max if now_local_max is defined else now_local %}
+
+{% block title %}{{ 'Schlaf bearbeiten' if is_edit else 'Schlaf eintragen' }} · {{ child_name }}{% endblock %}
 
 {% block content %}
+{% set action = (root + '/sleep/' + entry.id|string + '/edit') if is_edit else (root + '/sleep/new') %}
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ root }}/sleep" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
-<h1 class="text-xl font-bold mb-4">Schlaf nachträglich eintragen</h1>
+<h1 class="text-xl font-bold mb-4">{{ 'Schlaf bearbeiten' if is_edit else 'Schlaf nachträglich eintragen' }}</h1>
 
-<form method="post" action="{{ root }}/sleep/new" class="space-y-4">
+<form method="post" action="{{ action }}" class="space-y-4">
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Einschlaf</span>
-    <input type="datetime-local" name="started_at" required value="{{ now_local }}" max="{{ now_local }}"
+    <input type="datetime-local" name="started_at" required value="{{ now_local }}" max="{{ max_dt }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Aufwachen (leer = läuft noch)</span>
-    <input type="datetime-local" name="ended_at" max="{{ now_local }}"
+    <input type="datetime-local" name="ended_at" max="{{ max_dt }}"
+           value="{{ ended_local if ended_local is defined else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
@@ -29,7 +34,8 @@
     <div class="grid grid-cols-3 gap-2 text-sm">
       {% for val, lbl in locations %}
       <label class="cursor-pointer">
-        <input type="radio" name="location" value="{{ val }}" class="peer sr-only">
+        <input type="radio" name="location" value="{{ val }}" class="peer sr-only"
+               {% if is_edit and entry.location == val %}checked{% endif %}>
         <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                     peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
           {{ lbl }}
@@ -41,7 +47,7 @@
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
-    <input type="text" name="notes" maxlength="500"
+    <input type="text" name="notes" maxlength="500" value="{{ entry.notes or '' if is_edit else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
   </label>
 

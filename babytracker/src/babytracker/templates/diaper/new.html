@@ -1,33 +1,37 @@
 {% extends "layout.html" %}
 
-{% block title %}Neue Windel · {{ child_name }}{% endblock %}
+{% set is_edit = entry is defined and entry %}
+{% set max_dt = now_local_max if now_local_max is defined else now_local %}
+
+{% block title %}{{ 'Windel bearbeiten' if is_edit else 'Neue Windel' }} · {{ child_name }}{% endblock %}
 
 {% block content %}
+{% set action = (root + '/diaper/' + entry.id|string + '/edit') if is_edit else (root + '/diaper/new') %}
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ root }}/diaper" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
-<h1 class="text-xl font-bold mb-4">Neue Windel</h1>
+<h1 class="text-xl font-bold mb-4">{{ 'Windel bearbeiten' if is_edit else 'Neue Windel' }}</h1>
 
-<form method="post" action="{{ root }}/diaper/new" class="space-y-4" x-data="{ pee: false, stool: false, color: '', colorStatus: '' }">
+<form method="post" action="{{ action }}" class="space-y-4" x-data="{ pee: {{ 'true' if is_edit and entry.pee else 'false' }}, stool: {{ 'true' if is_edit and entry.stool else 'false' }}, color: '{{ entry.stool_color if is_edit else '' }}', colorStatus: '' }">
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
-    <input type="datetime-local" name="changed_at" required value="{{ now_local }}" max="{{ now_local }}"
+    <input type="datetime-local" name="changed_at" required value="{{ now_local }}" max="{{ max_dt }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
   <div class="grid grid-cols-2 gap-3">
     <label class="cursor-pointer">
-      <input type="checkbox" name="pee" value="1" class="peer sr-only" x-model="pee">
+      <input type="checkbox" name="pee" value="1" class="peer sr-only" x-model="pee" {% if is_edit and entry.pee %}checked{% endif %}>
       <div class="text-center px-3 py-5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                   peer-checked:bg-amber-100 peer-checked:dark:bg-amber-900/30 peer-checked:border-amber-400 text-lg font-semibold">
         💧 Pipi
       </div>
     </label>
     <label class="cursor-pointer">
-      <input type="checkbox" name="stool" value="1" class="peer sr-only" x-model="stool">
+      <input type="checkbox" name="stool" value="1" class="peer sr-only" x-model="stool" {% if is_edit and entry.stool %}checked{% endif %}>
       <div class="text-center px-3 py-5 rounded-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                   peer-checked:bg-amber-100 peer-checked:dark:bg-amber-900/30 peer-checked:border-amber-400 text-lg font-semibold">
         💩 Stuhl

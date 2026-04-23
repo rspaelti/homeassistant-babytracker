@@ -197,3 +197,34 @@ async def check_now(
     """Manueller Trigger: Warnungs-Scan jetzt laufen lassen inkl. Push."""
     await check_warnings_job()
     return _redirect_to_warnings(request)
+
+
+@router.post("/warnings/{code}/dismiss")
+async def warning_dismiss(
+    request: Request,
+    code: str,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+):
+    state = session.get(WarningState, code)
+    if state:
+        state.dismissed_at = datetime.now(TZ)
+        state.active = False
+        session.add(state)
+        session.commit()
+    return _redirect_to_warnings(request)
+
+
+@router.post("/warnings/{code}/undismiss")
+async def warning_undismiss(
+    request: Request,
+    code: str,
+    session: Session = Depends(get_session),
+    user: CurrentUser = Depends(get_current_user),
+):
+    state = session.get(WarningState, code)
+    if state:
+        state.dismissed_at = None
+        session.add(state)
+        session.commit()
+    return _redirect_to_warnings(request)

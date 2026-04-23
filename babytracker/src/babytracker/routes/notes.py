@@ -70,6 +70,61 @@ async def note_create(
     return RedirectResponse(url=f"{root}/timeline", status_code=303)
 
 
+@router.get("/notes/{note_id}/edit", response_class=HTMLResponse)
+async def note_edit_form(
+    request: Request,
+    note_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    entry = session.get(Note, note_id)
+    if not entry:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/timeline", status_code=303)
+    from babytracker.routes._shared import TZ as _TZ
+    logged_local = entry.logged_at if entry.logged_at.tzinfo else entry.logged_at.replace(tzinfo=_TZ)
+    child = get_child(session)
+    return templates.TemplateResponse(
+        request, "notes/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name if child else "Baby",
+            "now_local": logged_local.astimezone(_TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": now_local_iso(),
+            "entry": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/notes/{note_id}/edit")
+async def note_edit_save(
+    request: Request,
+    note_id: int,
+    logged_at: str = Form(...),
+    body: str = Form(...),
+    tags: str = Form(""),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    entry = session.get(Note, note_id)
+    if not entry:
+        root = request.scope.get("root_path", "")
+        return RedirectResponse(url=f"{root}/timeline", status_code=303)
+    if not body.strip():
+        raise HTTPException(status_code=400, detail="Text erforderlich")
+    try:
+        dt = parse_past_datetime(logged_at)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+    entry.logged_at = dt
+    entry.body = body.strip()
+    entry.tags = tags.strip() or None
+    session.add(entry)
+    session.commit()
+    root = request.scope.get("root_path", "")
+    return RedirectResponse(url=f"{root}/timeline", status_code=303)
+
+
 @router.post("/notes/{note_id}/delete")
 async def note_delete(
     request: Request,

@@ -48,10 +48,10 @@
 <div class="space-y-2">
   {% for p in chart.points | reverse %}
   <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex items-center justify-between text-sm gap-2">
-    <div class="flex-1 min-w-0">
+    <a href="{{ root }}/growth/{{ p.id }}/edit" class="flex-1 min-w-0 block">
       <div class="font-semibold">{{ display_value(kind, p.value * (1000 if kind == 'weight' else 1)) }}</div>
       <div class="text-xs text-slate-500">{{ p.measured_at.strftime('%d.%m.%Y %H:%M') }} · {{ p.source }}</div>
-    </div>
+    </a>
     <div class="text-right shrink-0">
       <div class="font-semibold">P{{ '%.0f' | format(p.percentile) }}</div>
       <div class="text-xs text-slate-500">Z {{ '%+.2f' | format(p.z) }}</div>

@@ -54,38 +54,55 @@
     }
   </script>
   <script>
-    // iOS-Tastatur: Wenn ein Input/Textarea focus bekommt, ins Sichtfenster scrollen
-    // und Bottom-Nav ausblenden, damit das Feld nicht von der Tastatur verdeckt wird.
-    document.addEventListener('DOMContentLoaded', function () {
+    // iOS-Tastatur: Focus → scroll Element über der Tastatur, Footer-Nav ausblenden.
+    (function () {
       function isEditable(el) {
         if (!el) return false;
         const tag = el.tagName;
         return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       }
+      function ensureVisible(el) {
+        if (!el) return;
+        const vv = window.visualViewport;
+        const availBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+        const rect = el.getBoundingClientRect();
+        const padding = 40;
+        const overlap = rect.bottom - (availBottom - padding);
+        if (overlap > 0) {
+          window.scrollBy({ top: overlap + 20, behavior: 'smooth' });
+        } else if (rect.top < 60) {
+          window.scrollBy({ top: rect.top - 80, behavior: 'smooth' });
+        }
+      }
+      function syncKbHeight() {
+        const vv = window.visualViewport;
+        const diff = vv ? Math.max(0, window.innerHeight - vv.height) : 0;
+        document.documentElement.style.setProperty('--kb-h', diff + 'px');
+        if (diff > 100) {
+          document.body.classList.add('keyboard-open');
+        } else {
+          document.body.classList.remove('keyboard-open');
+        }
+      }
       document.addEventListener('focusin', function (e) {
         if (!isEditable(e.target)) return;
         document.body.classList.add('keyboard-open');
-        // Nach kurzer Verzögerung scrollen (Tastatur braucht etwas um zu erscheinen)
-        setTimeout(function () {
-          try { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-          catch (_) { e.target.scrollIntoView(); }
-        }, 320);
+        // Mehrfach nach Focus scrollen — iOS braucht Zeit um die Tastatur zu animieren
+        setTimeout(() => ensureVisible(e.target), 100);
+        setTimeout(() => ensureVisible(e.target), 350);
+        setTimeout(() => ensureVisible(e.target), 650);
       });
-      document.addEventListener('focusout', function (e) {
-        if (!isEditable(e.target)) return;
-        document.body.classList.remove('keyboard-open');
+      document.addEventListener('focusout', function () {
+        setTimeout(syncKbHeight, 100);
       });
-      // Visual-Viewport: bei Grössenänderung (Tastatur ein/aus) padding-bottom anpassen
       if (window.visualViewport) {
-        const syncPadding = function () {
-          const diff = Math.max(0, window.innerHeight - window.visualViewport.height);
-          document.body.style.setProperty('--kb-h', diff + 'px');
-        };
-        window.visualViewport.addEventListener('resize', syncPadding);
-        window.visualViewport.addEventListener('scroll', syncPadding);
-        syncPadding();
+        window.visualViewport.addEventListener('resize', function () {
+          syncKbHeight();
+          const active = document.activeElement;
+          if (isEditable(active)) setTimeout(() => ensureVisible(active), 50);
+        });
       }
-    });
+    })();
   </script>
   <style>
     body.keyboard-open nav.fixed { display: none !important; }

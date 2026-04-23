@@ -1,29 +1,33 @@
 {% extends "layout.html" %}
 
-{% block title %}Medikament · {{ child_name }}{% endblock %}
+{% set is_edit = entry is defined and entry %}
+{% set max_dt = now_local_max if now_local_max is defined else now_local %}
+
+{% block title %}{{ 'Medikament bearbeiten' if is_edit else 'Medikament' }} · {{ child_name }}{% endblock %}
 
 {% block content %}
+{% set action = (root + '/meds/' + entry.id|string + '/edit') if is_edit else (root + '/meds/new') %}
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ root }}/meds" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
 <h1 class="text-xl font-bold mb-4">
-  {% if chosen %}{{ chosen.label }}{% else %}Neues Medikament{% endif %}
+  {% if is_edit %}Medikament bearbeiten{% elif chosen %}{{ chosen.label }}{% else %}Neues Medikament{% endif %}
 </h1>
 
-<form method="post" action="{{ root }}/meds/new" class="space-y-4">
+<form method="post" action="{{ action }}" class="space-y-4">
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Zeitpunkt</span>
-    <input type="datetime-local" name="given_at" required value="{{ now_local }}" max="{{ now_local }}"
+    <input type="datetime-local" name="given_at" required value="{{ now_local }}" max="{{ max_dt }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Medikament</span>
     <input type="text" name="med_name" required maxlength="64"
-           value="{{ chosen.name if chosen else '' }}"
+           value="{{ entry.med_name if is_edit else (chosen.name if chosen else '') }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
@@ -31,13 +35,13 @@
     <label class="block">
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Dosis</span>
       <input type="number" name="dose_value" required step="0.01" min="0" inputmode="decimal"
-             value="{{ chosen.dose if chosen else '' }}"
+             value="{{ entry.dose_value if is_edit else (chosen.dose if chosen else '') }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
     </label>
     <label class="block">
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Einheit</span>
       <input type="text" name="dose_unit" required maxlength="16"
-             value="{{ chosen.unit if chosen else 'IE' }}"
+             value="{{ entry.dose_unit if is_edit else (chosen.unit if chosen else 'IE') }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg">
     </label>
   </div>
@@ -48,7 +52,7 @@
       {% for val, lbl in routes %}
       <label class="cursor-pointer">
         <input type="radio" name="route" value="{{ val }}" class="peer sr-only"
-               {% if (chosen and chosen.route == val) or (not chosen and loop.first) %}checked{% endif %}>
+               {% if is_edit and entry.route == val %}checked{% elif not is_edit and ((chosen and chosen.route == val) or (not chosen and loop.first)) %}checked{% endif %}>
         <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                     peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
           {{ lbl }}
@@ -60,7 +64,7 @@
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
-    <input type="text" name="notes" maxlength="500"
+    <input type="text" name="notes" maxlength="500" value="{{ entry.notes or '' if is_edit else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
   </label>
 

@@ -125,6 +125,73 @@ async def sleep_stop(
     return _redirect_to_sleep(request)
 
 
+@router.get("/sleep/{sleep_id}/edit", response_class=HTMLResponse)
+async def sleep_edit_form(
+    request: Request,
+    sleep_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(SleepSession, sleep_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_sleep(request)
+    started_local = entry.started_at
+    if started_local.tzinfo is None:
+        started_local = started_local.replace(tzinfo=TZ)
+    ended_local_iso = ""
+    if entry.ended_at:
+        e = entry.ended_at if entry.ended_at.tzinfo else entry.ended_at.replace(tzinfo=TZ)
+        ended_local_iso = e.astimezone(TZ).strftime("%Y-%m-%dT%H:%M")
+    return templates.TemplateResponse(
+        request, "sleep/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name,
+            "now_local": started_local.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": now_local_iso(),
+            "ended_local": ended_local_iso,
+            "locations": LOCATIONS,
+            "entry": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/sleep/{sleep_id}/edit")
+async def sleep_edit_save(
+    request: Request,
+    sleep_id: int,
+    started_at: str = Form(...),
+    ended_at: str = Form(""),
+    location: str = Form(""),
+    notes: str = Form(""),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(SleepSession, sleep_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_sleep(request)
+    try:
+        started = parse_past_datetime(started_at)
+        ended = parse_past_datetime(ended_at) if ended_at else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+    if ended and ended <= started:
+        raise HTTPException(status_code=400, detail="Endzeit muss nach Startzeit liegen")
+    entry.started_at = started
+    entry.ended_at = ended
+    entry.location = location or None
+    entry.notes = notes.strip() or None
+    session.add(entry)
+    session.commit()
+    return _redirect_to_sleep(request)
+
+
 @router.post("/sleep/{sleep_id}/delete")
 async def sleep_delete(
     request: Request,

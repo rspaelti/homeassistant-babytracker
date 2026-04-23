@@ -184,6 +184,90 @@ async def diaper_create(
     return _redirect_to_diaper(request)
 
 
+@router.get("/diaper/{diaper_id}/edit", response_class=HTMLResponse)
+async def diaper_edit_form(
+    request: Request,
+    diaper_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(Diaper, diaper_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_diaper(request)
+
+    normal_colors = [(k, STOOL_COLORS_META[k]) for k in STOOL_COLOR_ORDER if STOOL_COLORS_META[k]["status"] == "normal"]
+    warn_colors = [(k, STOOL_COLORS_META[k]) for k in STOOL_COLOR_ORDER if STOOL_COLORS_META[k]["status"] != "normal"]
+    changed_local = entry.changed_at
+    if changed_local.tzinfo is None:
+        changed_local = changed_local.replace(tzinfo=TZ)
+    return templates.TemplateResponse(
+        request, "diaper/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name,
+            "now_local": changed_local.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": now_local_iso(),
+            "normal_colors": normal_colors, "warn_colors": warn_colors,
+            "stool_consistency": STOOL_CONSISTENCY,
+            "pee_intensity": PEE_INTENSITY,
+            "amount": AMOUNT,
+            "entry": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/diaper/{diaper_id}/edit")
+async def diaper_edit_save(
+    request: Request,
+    diaper_id: int,
+    changed_at: str = Form(...),
+    pee: str = Form(""),
+    stool: str = Form(""),
+    pee_intensity: str = Form(""),
+    pee_amount: str = Form(""),
+    stool_color: str = Form(""),
+    stool_consistency: str = Form(""),
+    stool_amount: str = Form(""),
+    notes: str = Form(""),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(Diaper, diaper_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_diaper(request)
+    try:
+        dt = parse_past_datetime(changed_at)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+
+    has_pee = bool(pee)
+    has_stool = bool(stool)
+    if not (has_pee or has_stool):
+        raise HTTPException(status_code=400, detail="Pipi oder Stuhl auswählen")
+    if stool_color and stool_color not in STOOL_COLORS_META:
+        raise HTTPException(status_code=400, detail="Unbekannte Stuhlfarbe")
+
+    amount_vals = dict(AMOUNT)
+    entry.changed_at = dt
+    entry.pee = has_pee
+    entry.stool = has_stool
+    entry.pee_intensity = pee_intensity if has_pee and pee_intensity else None
+    entry.pee_amount = pee_amount if has_pee and pee_amount in amount_vals else None
+    entry.stool_color = stool_color if has_stool and stool_color else None
+    entry.stool_consistency = stool_consistency if has_stool and stool_consistency else None
+    entry.stool_amount = stool_amount if has_stool and stool_amount in amount_vals else None
+    entry.notes = notes.strip() or None
+    session.add(entry)
+    session.commit()
+    return _redirect_to_diaper(request)
+
+
 @router.post("/diaper/{diaper_id}/delete")
 async def diaper_delete(
     request: Request,

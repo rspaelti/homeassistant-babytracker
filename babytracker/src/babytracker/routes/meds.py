@@ -189,6 +189,69 @@ async def meds_quick(
     return _redirect_to_meds(request)
 
 
+@router.get("/meds/{med_id}/edit", response_class=HTMLResponse)
+async def meds_edit_form(
+    request: Request,
+    med_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(Medication, med_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_meds(request)
+    given_local = entry.given_at if entry.given_at.tzinfo else entry.given_at.replace(tzinfo=TZ)
+    return templates.TemplateResponse(
+        request, "meds/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name,
+            "now_local": given_local.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": now_local_iso(),
+            "presets": PRESETS, "chosen": None, "routes": ROUTES,
+            "entry": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/meds/{med_id}/edit")
+async def meds_edit_save(
+    request: Request,
+    med_id: int,
+    given_at: str = Form(...),
+    med_name: str = Form(...),
+    dose_value: float = Form(...),
+    dose_unit: str = Form(...),
+    route: str = Form("oral"),
+    notes: str = Form(""),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(Medication, med_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_meds(request)
+    try:
+        dt = parse_past_datetime(given_at)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+    if not med_name.strip() or dose_value <= 0:
+        raise HTTPException(status_code=400, detail="Medikament/Dosis fehlt")
+    entry.given_at = dt
+    entry.med_name = med_name.strip()
+    entry.dose_value = dose_value
+    entry.dose_unit = dose_unit.strip() or "IE"
+    entry.route = route if route in {"oral", "injection", "topical"} else "oral"
+    entry.notes = notes.strip() or None
+    session.add(entry)
+    session.commit()
+    return _redirect_to_meds(request)
+
+
 @router.post("/meds/{med_id}/delete")
 async def meds_delete(
     request: Request,

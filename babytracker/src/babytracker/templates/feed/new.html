@@ -1,13 +1,20 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ 'Stillen' if kind == 'breast' else 'Flasche' }} · {{ child_name }}{% endblock %}
+{% set is_edit = entry is defined and entry %}
+{% set max_dt = now_local_max if now_local_max is defined else now_local %}
+
+{% block title %}{{ 'Bearbeiten' if is_edit else ('Stillen' if kind == 'breast' else 'Flasche') }} · {{ child_name }}{% endblock %}
 
 {% block content %}
+{% set action = (root + '/feed/' + entry.id|string + '/edit') if is_edit else (root + '/feed/new') %}
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ root }}/feed" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
 </div>
 
+{% if is_edit %}
+<h1 class="text-xl font-bold mb-4">Mahlzeit bearbeiten</h1>
+{% else %}
 <div class="flex gap-2 mb-4 text-sm">
   <a href="{{ root }}/feed/new?kind=breast"
      class="flex-1 text-center px-3 py-2 rounded-lg border
@@ -22,13 +29,14 @@
     🍼 Flasche
   </a>
 </div>
+{% endif %}
 
-<form method="post" action="{{ root }}/feed/new" class="space-y-4" x-data="feedTimer()">
+<form method="post" action="{{ action }}" class="space-y-4" x-data="feedTimer()">
   <input type="hidden" name="kind" value="{{ kind }}">
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Startzeit</span>
-    <input type="datetime-local" name="started_at" required value="{{ now_local }}" max="{{ now_local }}"
+    <input type="datetime-local" name="started_at" required value="{{ now_local }}" max="{{ max_dt }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
@@ -60,12 +68,14 @@
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Links (Min.)</span>
       <input type="number" name="duration_left_min" min="0" max="90" x-model="leftMin"
              inputmode="numeric" placeholder="0"
+             value="{{ entry.duration_left_min if is_edit and entry.duration_left_min else '' }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
     </label>
     <label class="block">
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Rechts (Min.)</span>
       <input type="number" name="duration_right_min" min="0" max="90" x-model="rightMin"
              inputmode="numeric" placeholder="0"
+             value="{{ entry.duration_right_min if is_edit and entry.duration_right_min else '' }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
     </label>
   </div>
@@ -90,24 +100,26 @@
     <label class="block">
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Angeboten (ml)</span>
       <input type="number" name="bottle_offered_ml" min="0" max="400" inputmode="numeric"
+             value="{{ entry.bottle_offered_ml if is_edit and entry.bottle_offered_ml else '' }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
     </label>
     <label class="block">
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Getrunken (ml)</span>
       <input type="number" name="bottle_taken_ml" min="0" max="400" inputmode="numeric"
+             value="{{ entry.bottle_taken_ml if is_edit and entry.bottle_taken_ml else '' }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-lg font-semibold">
     </label>
   </div>
   {% endif %}
 
   <label class="flex items-center gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-    <input type="checkbox" name="spit_up" value="1" class="w-5 h-5">
+    <input type="checkbox" name="spit_up" value="1" class="w-5 h-5" {% if is_edit and entry.spit_up %}checked{% endif %}>
     <span class="text-sm">🤢 Hat gespuckt</span>
   </label>
 
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Notiz (optional)</span>
-    <input type="text" name="notes" maxlength="500"
+    <input type="text" name="notes" maxlength="500" value="{{ entry.notes or '' if is_edit else '' }}"
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
   </label>
 

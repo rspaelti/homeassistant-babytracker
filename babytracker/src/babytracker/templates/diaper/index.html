@@ -34,7 +34,7 @@
   {% for d in recent %}
   {% set color_meta = stool_colors_meta.get(d.stool_color) if d.stool_color else None %}
   <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-center justify-between gap-2">
-    <div class="flex items-center gap-3 flex-1 min-w-0">
+    <a href="{{ root }}/diaper/{{ d.id }}/edit" class="flex items-center gap-3 flex-1 min-w-0">
       {% if color_meta %}
       <div class="shrink-0 w-8 h-8 rounded-full border border-slate-300 dark:border-slate-600" style="background:{{ color_meta.hex }}"></div>
       {% else %}
@@ -51,7 +51,7 @@
         <div class="text-xs text-slate-500">{{ d.changed_at.strftime('%d.%m. %H:%M') }} · {{ format_ago(d.changed_at) }}</div>
         {% if d.notes %}<div class="text-xs text-slate-400 italic truncate">{{ d.notes }}</div>{% endif %}
       </div>
-    </div>
+    </a>
     <form method="post" action="{{ root }}/diaper/{{ d.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
       <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
     </form>

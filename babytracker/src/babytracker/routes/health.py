@@ -221,6 +221,146 @@ async def health_create(
     return _redirect_to_health(request)
 
 
+@router.get("/health/event/{event_id}/edit", response_class=HTMLResponse)
+async def health_event_edit_form(
+    request: Request,
+    event_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(HealthEvent, event_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_health(request)
+    age_days = int((as_aware(datetime.now(TZ)) - as_aware(child.birth_at)).total_seconds() / 86400)
+    fever_th, fever_label = _fever_threshold_info(age_days)
+    rec_local = entry.recorded_at if entry.recorded_at.tzinfo else entry.recorded_at.replace(tzinfo=TZ)
+    return templates.TemplateResponse(
+        request, "health/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name,
+            "category": entry.category,
+            "category_label": CATEGORY_LABELS.get(entry.category, entry.category),
+            "categories": CATEGORIES,
+            "now_local": rec_local.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": now_local_iso(),
+            "jaundice_levels": JAUNDICE_LEVELS,
+            "umbilical_status": UMBILICAL_STATUS,
+            "skin_status": SKIN_STATUS,
+            "fever_threshold": fever_th,
+            "fever_label": fever_label,
+            "entry": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/health/event/{event_id}/edit")
+async def health_event_edit_save(
+    request: Request,
+    event_id: int,
+    category: str = Form(...),
+    recorded_at: str = Form(...),
+    score: int = Form(-1),
+    status_value: str = Form(""),
+    notes: str = Form(""),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(HealthEvent, event_id)
+    if not entry or entry.child_id != child.id:
+        return _redirect_to_health(request)
+    if category not in CATEGORY_LABELS or category == "temp":
+        raise HTTPException(status_code=400, detail="Unbekannte Kategorie")
+    try:
+        dt = parse_past_datetime(recorded_at)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+    entry.recorded_at = dt
+    entry.category = category
+    entry.notes = notes.strip() or None
+    entry.score = None
+    entry.status = None
+    if category == "jaundice" and 0 <= score <= 3:
+        entry.score = score
+    elif category == "umbilical" and status_value in dict(UMBILICAL_STATUS):
+        entry.status = status_value
+    elif category == "skin" and status_value in dict(SKIN_STATUS):
+        entry.status = status_value
+    session.add(entry)
+    session.commit()
+    return _redirect_to_health(request)
+
+
+@router.get("/health/temp/{vital_id}/edit", response_class=HTMLResponse)
+async def health_temp_edit_form(
+    request: Request,
+    vital_id: int,
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(Vital, vital_id)
+    if not entry or entry.child_id != child.id or entry.kind != "temp_body":
+        return _redirect_to_health(request)
+    age_days = int((as_aware(datetime.now(TZ)) - as_aware(child.birth_at)).total_seconds() / 86400)
+    fever_th, fever_label = _fever_threshold_info(age_days)
+    m_local = entry.measured_at if entry.measured_at.tzinfo else entry.measured_at.replace(tzinfo=TZ)
+    return templates.TemplateResponse(
+        request, "health/new.html",
+        {
+            "user": user, "version": request.app.version,
+            "child_name": child.name,
+            "category": "temp",
+            "category_label": CATEGORY_LABELS["temp"],
+            "categories": CATEGORIES,
+            "now_local": m_local.astimezone(TZ).strftime("%Y-%m-%dT%H:%M"),
+            "now_local_max": now_local_iso(),
+            "jaundice_levels": JAUNDICE_LEVELS,
+            "umbilical_status": UMBILICAL_STATUS,
+            "skin_status": SKIN_STATUS,
+            "fever_threshold": fever_th,
+            "fever_label": fever_label,
+            "entry_temp": entry, "is_edit": True,
+        },
+    )
+
+
+@router.post("/health/temp/{vital_id}/edit")
+async def health_temp_edit_save(
+    request: Request,
+    vital_id: int,
+    recorded_at: str = Form(...),
+    temp_value: float = Form(...),
+    user: CurrentUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    child = get_child(session)
+    if not child:
+        return _redirect_to_setup(request)
+    entry = session.get(Vital, vital_id)
+    if not entry or entry.child_id != child.id or entry.kind != "temp_body":
+        return _redirect_to_health(request)
+    if not (34.0 <= temp_value <= 42.0):
+        raise HTTPException(status_code=400, detail="Temperatur muss 34–42 °C sein")
+    try:
+        dt = parse_past_datetime(recorded_at)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum")
+    entry.measured_at = dt
+    entry.value = temp_value
+    session.add(entry)
+    session.commit()
+    return _redirect_to_health(request)
+
+
 @router.post("/health/event/{event_id}/delete")
 async def health_event_delete(
     request: Request,

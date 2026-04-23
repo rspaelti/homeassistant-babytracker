@@ -69,7 +69,7 @@
 <div class="space-y-2">
   {% for s in recent %}
   <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-start justify-between gap-2">
-    <div class="flex-1 min-w-0">
+    <a href="{{ root }}/sleep/{{ s.id }}/edit" class="flex-1 min-w-0 block">
       <div class="font-semibold">
         {% if s.ended_at %}
           {% set mins = ((s.ended_at - s.started_at).total_seconds() / 60) | int %}
@@ -84,7 +84,7 @@
         {% if s.ended_at %} – {{ s.ended_at.strftime('%H:%M') }}{% endif %}
       </div>
       {% if s.notes %}<div class="text-xs text-slate-400 italic truncate">{{ s.notes }}</div>{% endif %}
-    </div>
+    </a>
     <form method="post" action="{{ root }}/sleep/{{ s.id }}/delete" onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
       <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
     </form>

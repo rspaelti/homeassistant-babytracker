@@ -49,7 +49,11 @@
   </div>
   <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
     {% for e in events %}
+    {% if e.edit_url %}
+    <a href="{{ root }}{{ e.edit_url }}" class="flex gap-3 p-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50">
+    {% else %}
     <div class="flex gap-3 p-3 text-sm">
+    {% endif %}
       <div class="shrink-0 w-12 text-xs text-slate-500 font-mono pt-0.5">
         {{ e.when.strftime('%H:%M') }}
       </div>
@@ -58,7 +62,7 @@
         <div class="font-semibold {{ e.extra_class }}">{{ e.title }}</div>
         {% if e.detail %}<div class="text-xs text-slate-600 dark:text-slate-400 break-words">{{ e.detail }}</div>{% endif %}
       </div>
-    </div>
+    {% if e.edit_url %}</a>{% else %}</div>{% endif %}
     {% endfor %}
   </div>
 </div>
