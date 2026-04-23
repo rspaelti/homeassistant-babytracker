@@ -54,59 +54,42 @@
     }
   </script>
   <script>
-    // iOS-Tastatur: Focus → scroll Element über der Tastatur, Footer-Nav ausblenden.
+    // iOS Safari (auch im HA-Ingress-iframe): einfacher, robuster Ansatz ohne
+    // visualViewport (das iframe feuert dort keine Resize-Events beim Keyboard).
+    // Strategie: Bei Focus wird genug Scroll-Platz geschaffen und das Element
+    // zentriert, damit die Tastatur es nicht mehr verdeckt.
     (function () {
-      function isEditable(el) {
-        if (!el) return false;
-        const tag = el.tagName;
-        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      function editable(el) {
+        if (!el || !el.tagName) return false;
+        return ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
       }
-      function ensureVisible(el) {
+      function scrollElIntoView(el) {
         if (!el) return;
-        const vv = window.visualViewport;
-        const availBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
-        const rect = el.getBoundingClientRect();
-        const padding = 40;
-        const overlap = rect.bottom - (availBottom - padding);
-        if (overlap > 0) {
-          window.scrollBy({ top: overlap + 20, behavior: 'smooth' });
-        } else if (rect.top < 60) {
-          window.scrollBy({ top: rect.top - 80, behavior: 'smooth' });
-        }
-      }
-      function syncKbHeight() {
-        const vv = window.visualViewport;
-        const diff = vv ? Math.max(0, window.innerHeight - vv.height) : 0;
-        document.documentElement.style.setProperty('--kb-h', diff + 'px');
-        if (diff > 100) {
-          document.body.classList.add('keyboard-open');
-        } else {
-          document.body.classList.remove('keyboard-open');
-        }
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (_) { try { el.scrollIntoView(); } catch (__) {} }
       }
       document.addEventListener('focusin', function (e) {
-        if (!isEditable(e.target)) return;
+        if (!editable(e.target)) return;
         document.body.classList.add('keyboard-open');
-        // Mehrfach nach Focus scrollen — iOS braucht Zeit um die Tastatur zu animieren
-        setTimeout(() => ensureVisible(e.target), 100);
-        setTimeout(() => ensureVisible(e.target), 350);
-        setTimeout(() => ensureVisible(e.target), 650);
+        // Mehrfach scrollen — iOS braucht Zeit bis die Tastatur animiert ist
+        setTimeout(() => scrollElIntoView(e.target), 150);
+        setTimeout(() => scrollElIntoView(e.target), 400);
+        setTimeout(() => scrollElIntoView(e.target), 800);
       });
       document.addEventListener('focusout', function () {
-        setTimeout(syncKbHeight, 100);
+        setTimeout(function () {
+          const a = document.activeElement;
+          if (!editable(a)) document.body.classList.remove('keyboard-open');
+        }, 200);
       });
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', function () {
-          syncKbHeight();
-          const active = document.activeElement;
-          if (isEditable(active)) setTimeout(() => ensureVisible(active), 50);
-        });
-      }
     })();
   </script>
   <style>
+    /* Wenn Tastatur offen: Footer-Nav aus, genug Platz unter dem Form damit
+       das fokussierte Element nach oben gescrollt werden kann. */
     body.keyboard-open nav.fixed { display: none !important; }
-    main { padding-bottom: calc(6rem + var(--kb-h, 0px)); }
+    main { padding-bottom: 6rem; }
+    body.keyboard-open main { padding-bottom: 60vh; }
   </style>
 </head>
 <body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.2 — Bearbeiten: Stillzeiten werden übernommen + iOS-Tastatur anderer Ansatz
+
+### 🐛 Stillzeiten (Min. L/R) im Edit-Form leer
+Grund: Alpine.js `x-model` überschreibt beim Mount das HTML-`value`-Attribut der Inputs mit dem Alpine-State (Default `leftSec=0`). Fix: `feedTimer(initL, initR)` bekommt die Init-Werte als Parameter übergeben (aus Template: `x-data="feedTimer({{ entry.duration_left_min or 0 }}, {{ entry.duration_right_min or 0 }})"`). Der Alpine-State startet jetzt mit den tatsächlichen Werten.
+
+### 🐛 iOS-Tastatur verdeckt Textfeld immer noch
+Recherche zeigt: unter HA Ingress läuft die App im iframe, und die `visualViewport`-API feuert im iframe keine Resize-Events wenn die iOS-Tastatur hochkommt. Der bisherige Ansatz konnte also gar nicht greifen.
+
+Neuer Ansatz (kein `visualViewport`):
+- Beim Focus auf Input/Textarea: Body bekommt Klasse `keyboard-open`
+- CSS: `body.keyboard-open main { padding-bottom: 60vh; }` → genug Scroll-Platz unter dem Form
+- CSS: `body.keyboard-open nav.fixed { display: none; }` → Footer-Nav aus
+- JS: `scrollIntoView({ block: 'center' })` mit 3 zeitversetzten Versuchen (150/400/800ms) → Element wandert über die Tastatur
+
+Das funktioniert unabhängig von viewport-Events.
+
 ## 0.7.1 — Quittieren wirklich verdrahtet + editierbare Einträge + robustere iOS-Tastatur
 
 ### 🐛 Fixes
