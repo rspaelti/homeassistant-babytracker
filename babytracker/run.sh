@@ -15,6 +15,15 @@ export BT_INGRESS=1
 
 mkdir -p "$BT_DATA_DIR" "$BT_PHOTOS_DIR" "$BT_BACKUPS_DIR"
 
+# Einmalige Migration: DB von /data nach /share kopieren falls noch nicht geschehen
+if [ -f /data/babytracker.sqlite3 ] && [ ! -f "$BT_DB_PATH" ]; then
+    bashio::log.info "Migriere Datenbank von /data nach /share/babytracker/ ..."
+    cp /data/babytracker.sqlite3 "$BT_DB_PATH"
+    [ -d /data/photos ]  && cp -r /data/photos  "$BT_PHOTOS_DIR"  || true
+    [ -d /data/backups ] && cp -r /data/backups "$BT_BACKUPS_DIR" || true
+    bashio::log.info "Migration abgeschlossen."
+fi
+
 cd /app
 
 bashio::log.info "Running Alembic migrations..."
