@@ -51,8 +51,16 @@ async def warnings_index(
     configs = all_rule_configs(session)
     session.commit()
 
+    # live Warnungen aufteilen: aktiv vs. quittiert (dismissed_at gesetzt)
+    dismissed_codes = {
+        s.code for s in session.exec(
+            select(WarningState).where(WarningState.dismissed_at.is_not(None))
+        ).all()
+    }
+    active_live = [w for w in live if w.code not in dismissed_codes]
+    muted_live = [w for w in live if w.code in dismissed_codes]
+
     targets = session.exec(select(NotifyTarget).order_by(NotifyTarget.id)).all()
-    # Verfügbare HA-notify-Services, die noch nicht als Target hinterlegt sind
     existing_services = {t.service_name for t in targets}
     discovered = await list_mobile_app_notify_services()
     available = [s for s in discovered if s not in existing_services]
@@ -64,7 +72,8 @@ async def warnings_index(
             "user": user,
             "version": request.app.version,
             "child_name": child.name,
-            "live": live,
+            "live": active_live,
+            "muted": muted_live,
             "history": history,
             "rules": ALL_RULES,
             "configs": configs,

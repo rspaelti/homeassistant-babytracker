@@ -215,7 +215,10 @@ async def home(
         ctx["today_event_count"] = len(today_events)
 
         ctx["active_warnings"] = session.exec(
-            select(WarningState).where(WarningState.active == True)  # noqa: E712
+            select(WarningState).where(
+                WarningState.active == True,  # noqa: E712
+                WarningState.dismissed_at.is_(None),
+            )
         ).all()
 
         # Dynamisches Still-Intervall → nächste empfohlene Mahlzeit

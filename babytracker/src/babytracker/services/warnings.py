@@ -285,6 +285,12 @@ class WarningRule:
     check: Callable[[Session, Child, datetime], WarningItem | None]
 
 
+def _no_check(session: Session, child: Child, now: datetime) -> WarningItem | None:
+    """Dummy-Check für zeitbasierte Reminder — werden nicht im run_all ausgelöst,
+    sondern direkt via Scheduler-Cron-Jobs gepusht."""
+    return None
+
+
 ALL_RULES: list[WarningRule] = [
     WarningRule(
         code="weight_loss_10",
@@ -324,6 +330,49 @@ ALL_RULES: list[WarningRule] = [
         description="Warnt, wenn zwischen zwei Gewichtsmessungen der Z-Score um mehr als 2 springt.",
         default_severity="warn",
         check=check_percentile_jump,
+    ),
+    # --- Zeitbasierte Reminder (Cron-Jobs, kein State-Check) ---
+    WarningRule(
+        code="reminder_weight_morning",
+        label="⏰ Gewicht-Erinnerung 09:00",
+        description="Tägliche Push-Erinnerung um 09:00 Uhr zur Gewichtsmessung.",
+        default_severity="info",
+        check=_no_check,
+    ),
+    WarningRule(
+        code="reminder_weight_late",
+        label="⏰ Gewicht-Nachzügler 10:00",
+        description="Falls bis 10:00 Uhr kein Gewicht eingetragen wurde, kommt ein zweiter Push.",
+        default_severity="info",
+        check=_no_check,
+    ),
+    WarningRule(
+        code="reminder_vitd_morning",
+        label="⏰ Vitamin-D-Erinnerung 09:00",
+        description="Tägliche Push-Erinnerung um 09:00 Uhr zur Vitamin-D-Gabe.",
+        default_severity="info",
+        check=_no_check,
+    ),
+    WarningRule(
+        code="reminder_vitd_late",
+        label="⏰ Vitamin-D-Nachzügler 10:00",
+        description="Falls bis 10:00 Uhr keine Vitamin-D-Gabe eingetragen wurde, kommt ein zweiter Push.",
+        default_severity="info",
+        check=_no_check,
+    ),
+    WarningRule(
+        code="reminder_length_morning",
+        label="⏰ Länge/Kopf Sonntag 09:00",
+        description="Wöchentliche Sonntag-Erinnerung um 09:00 Uhr für Länge + Kopfumfang.",
+        default_severity="info",
+        check=_no_check,
+    ),
+    WarningRule(
+        code="reminder_length_late",
+        label="⏰ Länge/Kopf Sonntag 10:00 Nachzügler",
+        description="Falls sonntags bis 10:00 Uhr Länge/Kopfumfang fehlen, kommt ein zweiter Push.",
+        default_severity="info",
+        check=_no_check,
     ),
 ]
 

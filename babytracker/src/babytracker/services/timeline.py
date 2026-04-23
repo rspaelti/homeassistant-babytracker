@@ -67,13 +67,19 @@ def _feed_line(f: Feeding) -> TimelineEvent:
 
 
 def _diaper_line(d: Diaper) -> TimelineEvent:
+    amount_de = {"light": "wenig", "normal": "normal", "heavy": "viel"}
     parts = []
     if d.pee:
-        parts.append("Pipi")
+        s = "Pipi"
+        if d.pee_amount:
+            s += f" ({amount_de.get(d.pee_amount, d.pee_amount)})"
+        parts.append(s)
     if d.stool:
         s = "Stuhl"
+        if d.stool_amount:
+            s += f" ({amount_de.get(d.stool_amount, d.stool_amount)})"
         if d.stool_color:
-            s += f" ({d.stool_color})"
+            s += f" · {d.stool_color}"
         parts.append(s)
     detail = " + ".join(parts)
     if d.stool_consistency:

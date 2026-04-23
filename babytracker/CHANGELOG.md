@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.0 — Quittieren, Mengen, Reminder, iOS-Tastatur, Clexane-Fix
+
+### 🐛 Fixes
+- **Clexane manuell eintragen**: 500-Fehler (fehlender Import nach Refactoring) — behoben
+- **iOS-Tastatur verdeckte Textfelder**: Focus-Handler scrollt Input ins Sichtfenster + Footer-Nav wird bei offener Tastatur ausgeblendet (visualViewport-API)
+
+### ✨ Features
+- **Warnungen quittierbar** — jede aktive Warnung hat jetzt einen "✓ Quittieren"-Button. Stumm bis Bedingung weg ist. Separater "Stumm geschaltet"-Bereich mit "Wieder aktiv"-Option.
+- **Pipi/Stuhl-Menge**: neue Felder `wenig / normal / viel` für beide. Timeline + Liste zeigen die Menge. Migration automatisch.
+- **Zeit-basierte Reminder** als Push-Notifications:
+  - **Täglich 09:00 + 10:00**: Gewicht messen
+  - **Täglich 09:00 + 10:00**: Vitamin D verabreichen
+  - **Sonntags 09:00 + 10:00**: Länge + Kopfumfang messen
+  - Die 10:00-Reminder pushen nur wenn um 10:00 noch nichts eingetragen ist
+  - Alle 6 Reminder sind einzeln in **Warnungen → Regeln** ein-/ausschaltbar (Aktiv + Push separat)
+
+### Offen für v0.7.1
+- Klickbare/editierbare Einträge in den Listen (wurde nicht mehr geschafft diesmal)
+
 ## 0.6.6 — Zukunfts-Zeitpunkte überall blockiert
 
 Die Guard aus 0.6.5 war nur für Stillen. Jetzt gilt sie für **jedes** Datum/Zeit-Feld in der App:

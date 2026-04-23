@@ -44,7 +44,7 @@
       {% endif %}
       <div class="min-w-0">
         <div class="font-semibold truncate">
-          {% if d.pee %}Pipi{% if d.stool %} + {% endif %}{% endif %}{% if d.stool %}Stuhl{% endif %}
+          {% if d.pee %}Pipi{% if d.pee_amount %} ({{ amount_labels[d.pee_amount] }}){% endif %}{% if d.stool %} + {% endif %}{% endif %}{% if d.stool %}Stuhl{% if d.stool_amount %} ({{ amount_labels[d.stool_amount] }}){% endif %}{% endif %}
           {% if color_meta %} · {{ color_meta.label }}{% endif %}
           {% if d.stool and d.stool_consistency %} · {{ stool_consistency[d.stool_consistency] }}{% endif %}
         </div>

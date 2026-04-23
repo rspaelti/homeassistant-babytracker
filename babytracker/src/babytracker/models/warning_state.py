@@ -13,6 +13,7 @@ class WarningState(SQLModel, table=True):
     first_seen_at: datetime
     last_seen_at: datetime
     last_notified_at: datetime | None = Field(default=None)
+    dismissed_at: datetime | None = Field(default=None)  # User hat Warnung quittiert
     active: bool = Field(default=True)
     severity: str = Field(default="warn", max_length=16)
     title: str = Field(max_length=200)

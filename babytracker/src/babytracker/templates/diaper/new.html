@@ -35,18 +35,34 @@
     </label>
   </div>
 
-  <div x-show="pee" class="space-y-2">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">Pipi-Intensität</span>
-    <div class="grid grid-cols-3 gap-2 text-sm">
-      {% for val, lbl in pee_intensity %}
-      <label class="cursor-pointer">
-        <input type="radio" name="pee_intensity" value="{{ val }}" class="peer sr-only" {% if val == 'normal' %}checked{% endif %}>
-        <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
-                    peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
-          {{ lbl }}
-        </div>
-      </label>
-      {% endfor %}
+  <div x-show="pee" class="space-y-3">
+    <div>
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Pipi-Menge</span>
+      <div class="grid grid-cols-3 gap-2 text-sm">
+        {% for val, lbl in amount %}
+        <label class="cursor-pointer">
+          <input type="radio" name="pee_amount" value="{{ val }}" class="peer sr-only" {% if val == 'normal' %}checked{% endif %}>
+          <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                      peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+            {{ lbl }}
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Pipi-Farbe</span>
+      <div class="grid grid-cols-3 gap-2 text-sm">
+        {% for val, lbl in pee_intensity %}
+        <label class="cursor-pointer">
+          <input type="radio" name="pee_intensity" value="{{ val }}" class="peer sr-only" {% if val == 'normal' %}checked{% endif %}>
+          <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                      peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+            {{ lbl }}
+          </div>
+        </label>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
@@ -104,6 +120,21 @@
         {% for val, lbl in stool_consistency %}
         <label class="cursor-pointer">
           <input type="radio" name="stool_consistency" value="{{ val }}" class="peer sr-only">
+          <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
+                      peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
+            {{ lbl }}
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Stuhl-Menge</span>
+      <div class="grid grid-cols-3 gap-2 text-sm">
+        {% for val, lbl in amount %}
+        <label class="cursor-pointer">
+          <input type="radio" name="stool_amount" value="{{ val }}" class="peer sr-only" {% if val == 'normal' %}checked{% endif %}>
           <div class="text-center px-2 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900
                       peer-checked:bg-brand peer-checked:text-white peer-checked:border-brand">
             {{ lbl }}

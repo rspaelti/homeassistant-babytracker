@@ -48,6 +48,11 @@ PEE_INTENSITY = [
     ("normal", "Normal"),
     ("dark", "Dunkel"),
 ]
+AMOUNT = [
+    ("light", "Wenig"),
+    ("normal", "Normal"),
+    ("heavy", "Viel"),
+]
 
 
 def _redirect_to_setup(request: Request) -> RedirectResponse:
@@ -92,6 +97,7 @@ async def diaper_index(
             "stool_colors_meta": STOOL_COLORS_META,
             "stool_consistency": dict(STOOL_CONSISTENCY),
             "pee_intensity": dict(PEE_INTENSITY),
+            "amount_labels": dict(AMOUNT),
         },
     )
 
@@ -121,6 +127,7 @@ async def diaper_new(
             "warn_colors": warn_colors,
             "stool_consistency": STOOL_CONSISTENCY,
             "pee_intensity": PEE_INTENSITY,
+            "amount": AMOUNT,
         },
     )
 
@@ -132,8 +139,10 @@ async def diaper_create(
     pee: str = Form(""),
     stool: str = Form(""),
     pee_intensity: str = Form(""),
+    pee_amount: str = Form(""),
     stool_color: str = Form(""),
     stool_consistency: str = Form(""),
+    stool_amount: str = Form(""),
     notes: str = Form(""),
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
@@ -155,14 +164,17 @@ async def diaper_create(
     if stool_color and stool_color not in STOOL_COLORS_META:
         raise HTTPException(status_code=400, detail="Unbekannte Stuhlfarbe")
 
+    amount_vals = dict(AMOUNT)
     d = Diaper(
         child_id=child.id,
         changed_at=dt,
         pee=has_pee,
         stool=has_stool,
         pee_intensity=pee_intensity if has_pee and pee_intensity else None,
+        pee_amount=pee_amount if has_pee and pee_amount in amount_vals else None,
         stool_color=stool_color if has_stool and stool_color else None,
         stool_consistency=stool_consistency if has_stool and stool_consistency else None,
+        stool_amount=stool_amount if has_stool and stool_amount in amount_vals else None,
         notes=notes.strip() or None,
         created_by=get_user_id(session, user),
     )
