@@ -11,7 +11,7 @@
   <div class="font-semibold text-amber-700 dark:text-amber-300">HA nicht erreichbar</div>
   <div class="text-sm mt-1">Im Dev-Modus ohne HA-Token keine Daten.</div>
 </div>
-{% elif not live.sock_worn %}
+{% elif not live.sock_worn and not live.spo2 and not live.heart_rate %}
 <div class="rounded-2xl border-2 border-slate-400 bg-slate-50 dark:bg-slate-900 p-4 mb-4">
   <div class="font-semibold">🧦 Sock nicht getragen</div>
   <div class="text-sm mt-1 text-slate-500">Keine Live-Werte. Historische Daten unten.</div>

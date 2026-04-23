@@ -60,9 +60,14 @@ async def sample_once() -> dict[str, float | str | None]:
     # Sleep-State ist kein Zahlenwert
     st = await get_state(_sensor_entity(SLEEP_STATE_ENTITY_SUFFIX))
     out["sleep_state"] = st.get("state") if st else None
-    # Sock angelegt?
+    # Sock angelegt? binary_sensor.…sock_off: "off" = Sock AN
+    # Falls Entity fehlt oder unavailable → aus Sensordaten ableiten
     st = await get_state(_binary_entity(SOCK_OFF_ENTITY_SUFFIX))
-    out["sock_worn"] = (st.get("state") == "off") if st else False
+    if st and st.get("state") not in (None, "unknown", "unavailable"):
+        out["sock_worn"] = (st.get("state") == "off")
+    else:
+        # Fallback: Sock gilt als getragen wenn Puls oder SpO2 lesbar
+        out["sock_worn"] = isinstance(out.get("heart_rate"), (int, float)) or isinstance(out.get("spo2"), (int, float))
     return out
 
 
