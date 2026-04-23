@@ -75,25 +75,26 @@ async def _push_reminder(code: str, title: str, message: str) -> None:
         if not is_enabled(session, code):
             log.info("Reminder %s: disabled", code)
             return
-        push_ok = is_push_enabled(session, code)
-        targets = session.exec(
-            select(NotifyTarget).where(NotifyTarget.enabled == True)  # noqa: E712
-        ).all()
-        session.commit()
+        if not is_push_enabled(session, code):
+            log.info("Reminder %s: push disabled", code)
+            return
+        target_names: list[str] = [
+            t.service_name
+            for t in session.exec(
+                select(NotifyTarget).where(NotifyTarget.enabled == True)  # noqa: E712
+            ).all()
+        ]
 
-    if not push_ok:
-        log.info("Reminder %s: push disabled", code)
-        return
-    if not targets:
+    if not target_names:
         log.info("Reminder %s: no targets", code)
         return
 
     count = 0
-    for t in targets:
-        ok = await notify_mobile(t.service_name, f"Baby: {title}", message, critical=False)
+    for svc in target_names:
+        ok = await notify_mobile(svc, f"Baby: {title}", message, critical=False)
         if ok:
             count += 1
-    log.info("Reminder %s pushed to %d/%d targets", code, count, len(targets))
+    log.info("Reminder %s pushed to %d/%d targets", code, count, len(target_names))
 
 
 # --- Job-Funktionen ----------------------------------------------------------

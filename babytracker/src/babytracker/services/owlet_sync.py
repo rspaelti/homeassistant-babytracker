@@ -88,15 +88,22 @@ _buffer = _Buffer(values=defaultdict(list))
 async def collect_snapshot() -> None:
     """Läuft z.B. alle 30 Sek. — sammelt Werte im In-Memory-Buffer."""
     if not settings.ha_url or not settings.ha_token:
+        log.warning("Owlet collect: ha_url/ha_token not set – skipping")
         return
     sample = await sample_once()
     if not sample.get("sock_worn"):
-        # Sock nicht am Fuss → keine Messwerte speichern
+        log.debug(
+            "Owlet collect: sock not worn (hr=%s spo2=%s)",
+            sample.get("heart_rate"), sample.get("spo2"),
+        )
         return
+    added = 0
     for kind in ("heart_rate", "spo2", "spo2_avg10", "temp_skin"):
         v = sample.get(kind)
         if isinstance(v, (int, float)):
             _buffer.values[kind].append(float(v))
+            added += 1
+    log.info("Owlet collect: %d values buffered (hr=%s spo2=%s)", added, sample.get("heart_rate"), sample.get("spo2"))
 
 
 async def flush_aggregates() -> None:
@@ -153,8 +160,13 @@ class OwletLive:
 
 async def fetch_live() -> OwletLive:
     if not settings.ha_url or not settings.ha_token:
+        log.warning("fetch_live: ha_url/ha_token not set")
         return OwletLive(False, False, None, None, None, None, None, None)
     s = await sample_once()
+    log.info(
+        "fetch_live: sock_worn=%s hr=%s spo2=%s prefix=%s",
+        s.get("sock_worn"), s.get("heart_rate"), s.get("spo2"), settings.owlet_prefix,
+    )
     return OwletLive(
         available=True,
         sock_worn=bool(s.get("sock_worn")),
