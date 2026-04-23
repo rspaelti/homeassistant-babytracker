@@ -1,10 +1,10 @@
 #!/usr/bin/with-contenv bashio
 set -euo pipefail
 
-export BT_DB_PATH=/data/babytracker.sqlite3
-export BT_DATA_DIR=/data
-export BT_PHOTOS_DIR=/data/photos
-export BT_BACKUPS_DIR=/data/backups
+export BT_DB_PATH=/share/babytracker/babytracker.sqlite3
+export BT_DATA_DIR=/share/babytracker
+export BT_PHOTOS_DIR=/share/babytracker/photos
+export BT_BACKUPS_DIR=/share/babytracker/backups
 export BT_WHO_DIR=/app/data/who
 export BT_TIMEZONE="$(bashio::config 'timezone')"
 export BT_OWLET_PREFIX="$(bashio::config 'owlet_entity_prefix')"
@@ -13,7 +13,7 @@ export BT_HA_URL="http://supervisor/core"
 export BT_HA_TOKEN="${SUPERVISOR_TOKEN}"
 export BT_INGRESS=1
 
-mkdir -p "$BT_PHOTOS_DIR" "$BT_BACKUPS_DIR"
+mkdir -p "$BT_DATA_DIR" "$BT_PHOTOS_DIR" "$BT_BACKUPS_DIR"
 
 cd /app
 
