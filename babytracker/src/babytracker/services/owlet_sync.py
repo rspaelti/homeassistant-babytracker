@@ -17,7 +17,7 @@ from sqlmodel import Session, select
 
 from babytracker.config import settings
 from babytracker.db import engine
-from babytracker.models import Child, Vital
+from babytracker.models import Child, SleepSession, Vital
 from babytracker.services.ha_client import get_state
 
 log = logging.getLogger(__name__)
@@ -177,6 +177,66 @@ async def fetch_live() -> OwletLive:
         battery_pct=s.get("battery_pct") if isinstance(s.get("battery_pct"), (int, float)) else None,
         sleep_state=s.get("sleep_state") if isinstance(s.get("sleep_state"), str) else None,
     )
+
+
+# --- Auto-Schlaferfassung via sleep_state ------------------------------------
+
+# Owlet liefert typischerweise: awake / light_sleep / deep_sleep / out_of_range / sleep_disturbance
+_SLEEP_STATES = {"light_sleep", "deep_sleep", "sleep_disturbance"}
+_AWAKE_STATES = {"awake"}
+
+
+async def auto_sleep_from_owlet() -> None:
+    """Öffnet/schliesst automatisch SleepSessions anhand des Owlet sleep_state.
+
+    Regeln:
+    - sleep_state ∈ {light_sleep, deep_sleep, sleep_disturbance} und keine offene Session
+      → neue SleepSession mit owlet_worn=True eröffnen.
+    - sleep_state == 'awake' und eine offene SleepSession mit owlet_worn=True existiert
+      → diese schliessen.
+    - Manuelle Sessions (owlet_worn=False) bleiben unangetastet.
+    - Bei unknown/unavailable/out_of_range: nichts tun (Socke eventuell am Laden).
+    """
+    if not settings.ha_url or not settings.ha_token:
+        return
+    st = await get_state(_sensor_entity(SLEEP_STATE_ENTITY_SUFFIX))
+    if not st:
+        return
+    state = st.get("state")
+    if state in (None, "unknown", "unavailable", "out_of_range"):
+        return
+
+    now = datetime.now(TZ)
+    with Session(engine) as session:
+        child = session.exec(
+            select(Child).where(Child.active == True).order_by(Child.id)  # noqa: E712
+        ).first()
+        if not child:
+            return
+
+        open_session = session.exec(
+            select(SleepSession)
+            .where(SleepSession.child_id == child.id)
+            .where(SleepSession.ended_at.is_(None))
+            .order_by(SleepSession.started_at.desc())
+        ).first()
+
+        if state in _SLEEP_STATES:
+            if open_session is None:
+                session.add(SleepSession(
+                    child_id=child.id,
+                    started_at=now,
+                    owlet_worn=True,
+                    notes="Automatisch via Owlet",
+                ))
+                session.commit()
+                log.info("Auto-sleep: opened session (state=%s)", state)
+        elif state in _AWAKE_STATES:
+            if open_session is not None and open_session.owlet_worn:
+                open_session.ended_at = now
+                session.add(open_session)
+                session.commit()
+                log.info("Auto-sleep: closed session (state=%s)", state)
 
 
 # --- Alert-Check für WarningRules --------------------------------------------

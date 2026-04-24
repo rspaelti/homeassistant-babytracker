@@ -49,7 +49,7 @@ async def vitals_index(
     for r in rows:
         if r.kind not in series:
             continue
-        t = as_aware(r.measured_at).astimezone(TZ).strftime("%Y-%m-%dT%H:%M:%S")
+        t = as_aware(r.measured_at).astimezone(TZ).isoformat()
         series[r.kind].append((t, r.value))
 
     live = await fetch_live()

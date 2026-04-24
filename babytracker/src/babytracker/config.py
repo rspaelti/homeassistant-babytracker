@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     who_dir: Path = Field(default=Path("./data/who"))
 
     timezone: str = "Europe/Zurich"
-    owlet_prefix: str = "owled_smart_sock_sofia_"
+    owlet_prefix: str = "owlet_smart_sock_sofia_"
     log_level: str = "info"
     notify_service: str = ""  # z.B. "mobile_app_renes_iphone"; leer = keine Push
 

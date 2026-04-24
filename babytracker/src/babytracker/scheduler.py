@@ -18,6 +18,7 @@ from babytracker.services.daily import as_aware
 from babytracker.services.ha_client import notify_mobile
 from babytracker.services.owlet_sync import (
     any_active_alert,
+    auto_sleep_from_owlet,
     collect_snapshot,
     flush_aggregates,
 )
@@ -263,6 +264,9 @@ def start_scheduler() -> AsyncIOScheduler:
     )
     scheduler.add_job(
         _owlet_alerts_job, "interval", seconds=60, id="owlet_alerts", max_instances=1,
+    )
+    scheduler.add_job(
+        auto_sleep_from_owlet, "interval", seconds=60, id="owlet_auto_sleep", max_instances=1,
     )
 
     # Tägliche Reminder 09:00 + 10:00
