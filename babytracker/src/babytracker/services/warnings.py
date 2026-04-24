@@ -118,8 +118,6 @@ def _base_interval_hours(age_days: int) -> float:
     """Alters-abhängiges Basis-Intervall (Schweiz / WHO / Stillstiftung):
     Neugeborene 8–12 Mahlzeiten/24h → alle 2–3h, später verdünnt sich das.
     """
-    if age_days < 28:
-        return 2.5
     if age_days < 90:
         return 3.0
     if age_days < 180:
@@ -327,7 +325,7 @@ ALL_RULES: list[WarningRule] = [
         code="no_feed_4h",
         label="Mahlzeit-Intervall überschritten",
         description=(
-            "Dynamisches Intervall (Basis 2.5–4h nach Alter), "
+            "Dynamisches Intervall (Basis 3–4h nach Alter), "
             "kürzer bei Gewichtsverlust und wenn die letzte Stillzeit unter dem Ideal war "
             "(15 Min pro gestillter Seite). Warnt tagsüber 7–22 Uhr."
         ),
