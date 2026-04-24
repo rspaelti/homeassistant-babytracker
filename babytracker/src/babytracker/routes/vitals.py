@@ -45,12 +45,23 @@ async def vitals_index(
         .order_by(Vital.measured_at)
     ).all()
 
-    series: dict[str, list[tuple[str, float]]] = {"spo2": [], "heart_rate": [], "temp_skin": []}
+    # Bucket-Abstand 10 min → Lücke ab >15 min als null-Punkt einfügen,
+    # damit Chart.js die Linie über fehlende Perioden (Socke aus) nicht durchzieht.
+    gap_threshold = timedelta(minutes=15)
+    series: dict[str, list[tuple[str, float | None]]] = {
+        "spo2": [], "heart_rate": [], "temp_skin": [],
+    }
+    last_dt: dict[str, datetime] = {}
     for r in rows:
         if r.kind not in series:
             continue
-        t = as_aware(r.measured_at).astimezone(TZ).isoformat()
-        series[r.kind].append((t, r.value))
+        dt = as_aware(r.measured_at).astimezone(TZ)
+        prev = last_dt.get(r.kind)
+        if prev is not None and dt - prev > gap_threshold:
+            # Null-Punkt kurz nach dem letzten Wert → unterbricht die Linie
+            series[r.kind].append(((prev + timedelta(minutes=1)).isoformat(), None))
+        series[r.kind].append((dt.isoformat(), r.value))
+        last_dt[r.kind] = dt
 
     live = await fetch_live()
 
