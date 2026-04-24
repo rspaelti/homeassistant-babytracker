@@ -12,7 +12,7 @@ from babytracker.auth import CurrentUser, get_current_user
 from babytracker.db import get_session
 from babytracker.models import SleepSession
 from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_past_datetime
-from babytracker.services.daily import format_ago, format_duration, sleep_summary
+from babytracker.services.daily import format_ago, format_duration, format_elapsed, sleep_summary
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
@@ -68,6 +68,7 @@ async def sleep_index(
             "locations": dict(LOCATIONS),
             "format_ago": format_ago,
             "format_duration": format_duration,
+            "format_elapsed": format_elapsed,
         },
     )
 

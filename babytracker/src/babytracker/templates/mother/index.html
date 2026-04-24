@@ -109,9 +109,15 @@
 <h2 class="text-xs text-slate-500 uppercase tracking-wide mb-2">Verlauf</h2>
 <div class="space-y-2">
   {% set cat_labels = {'clexane': ('💉', 'Clexane'), 'thrombosis_check': ('🦵', 'Thrombose'), 'wound': ('🩹', 'Wunde'), 'bp': ('❤️', 'Blutdruck'), 'epds': ('📋', 'EPDS'), 'mood': ('😊', 'Stimmung'), 'lochia': ('🩸', 'Wochenfluss')} %}
+  {% set mood_emojis = {1:'😢',2:'😔',3:'😐',4:'🙂',5:'😄'} %}
   {% set editable_cats = ('clexane', 'thrombosis_check', 'wound', 'bp', 'lochia') %}
   {% for m in recent %}
-  {% set meta = cat_labels.get(m.category, ('🤱', m.category)) %}
+  {% set base_meta = cat_labels.get(m.category, ('🤱', m.category)) %}
+  {% if m.category == 'mood' and m.value_num is not none %}
+    {% set meta = (mood_emojis.get(m.value_num|int, '😊'), 'Stimmung') %}
+  {% else %}
+    {% set meta = base_meta %}
+  {% endif %}
   <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm flex items-start justify-between gap-2">
     {% if m.category in editable_cats %}
     <a href="{{ root }}/mother/{{ m.category }}/{{ m.id }}/edit" class="flex-1 min-w-0 block">

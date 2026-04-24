@@ -10,7 +10,7 @@
 <form method="post" action="{{ root }}/sleep/stop" class="mb-4">
   <div class="rounded-2xl border-2 border-brand bg-brand/10 p-4 text-center">
     <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Schläft seit</div>
-    <div class="text-3xl font-bold mb-2">{{ format_ago(summary.active.started_at) }}</div>
+    <div class="text-3xl font-bold mb-2">{{ format_elapsed(summary.active.started_at) }}</div>
     {% if summary.active.location %}
     <div class="text-sm text-slate-500 mb-3">📍 {{ locations[summary.active.location] or summary.active.location }}</div>
     {% endif %}

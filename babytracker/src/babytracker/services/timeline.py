@@ -196,9 +196,15 @@ def _mother_line(m: MotherLog) -> TimelineEvent:
         "mood": ("😊", "Stimmung"),
         "lochia": ("🩸", "Wochenfluss"),
     }
+    mood_emojis = {1: "😢", 2: "😔", 3: "😐", 4: "🙂", 5: "😄"}
+    mood_labels = {1: "Sehr schlecht", 2: "Schlecht", 3: "Neutral", 4: "Gut", 5: "Sehr gut"}
     icon, title = category_labels.get(m.category, ("🤱", m.category))
     parts = []
-    if m.value_num is not None:
+    if m.category == "mood" and m.value_num is not None:
+        val = int(m.value_num)
+        icon = mood_emojis.get(val, icon)
+        parts.append(mood_labels.get(val, str(val)))
+    elif m.value_num is not None:
         parts.append(f"{m.value_num}")
     if m.value_text:
         parts.append(m.value_text)

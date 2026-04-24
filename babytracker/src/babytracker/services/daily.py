@@ -174,6 +174,29 @@ def format_ago(dt: datetime | None, now: datetime | None = None) -> str:
     return f"vor {days}d"
 
 
+def format_elapsed(dt: datetime | None, now: datetime | None = None) -> str:
+    """Dauer seit `dt` ohne "vor "-Prefix — für "Schläft seit {…}"-Kontexte."""
+    if dt is None:
+        return "–"
+    now = now or datetime.now(TZ)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=TZ)
+    delta = now - dt
+    mins = int(delta.total_seconds() / 60)
+    if mins < 1:
+        return "weniger als 1 Min."
+    if mins < 60:
+        return f"{mins} Min."
+    hours = mins // 60
+    mins = mins % 60
+    if hours < 24:
+        if mins:
+            return f"{hours}h {mins:02d}"
+        return f"{hours}h"
+    days = hours // 24
+    return f"{days}d"
+
+
 def format_duration(minutes: int) -> str:
     if minutes <= 0:
         return "–"

@@ -40,6 +40,7 @@ from babytracker.services.daily import (
     feed_summary,
     format_ago,
     format_duration,
+    format_elapsed,
     sleep_summary,
 )
 
@@ -164,6 +165,7 @@ async def home(  # noqa: PLR0912, PLR0915
         "age_label": _age_label(child.birth_at) if child else None,
         "format_ago": format_ago,
         "format_duration": format_duration,
+        "format_elapsed": format_elapsed,
     }
 
     if child:
