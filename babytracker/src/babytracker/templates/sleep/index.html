@@ -75,7 +75,7 @@
           {% set mins = ((s.ended_at - s.started_at).total_seconds() / 60) | int %}
           😴 {{ format_duration(mins) }}
         {% else %}
-          💤 läuft seit {{ format_ago(s.started_at) }}
+          💤 läuft seit {{ format_elapsed(s.started_at) }}
         {% endif %}
         {% if s.location %} · 📍 {{ locations[s.location] or s.location }}{% endif %}
       </div>
