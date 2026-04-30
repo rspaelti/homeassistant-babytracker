@@ -29,7 +29,6 @@ from babytracker.routes import more as more_routes
 from babytracker.routes import mother as mother_routes
 from babytracker.routes import notes as notes_routes
 from babytracker.routes import placeholders as placeholder_routes
-from babytracker.routes import quick as quick_routes
 from babytracker.routes import setup as setup_routes
 from babytracker.routes import sleep as sleep_routes
 from babytracker.routes import timeline as timeline_routes
@@ -91,7 +90,6 @@ app.include_router(meds_routes.router)
 app.include_router(mother_routes.router)
 app.include_router(notes_routes.router)
 app.include_router(timeline_routes.router)
-app.include_router(quick_routes.router)
 app.include_router(warnings_routes.router)
 app.include_router(vitals_routes.router)
 app.include_router(more_routes.router)
