@@ -18,5 +18,4 @@ class JournalEntry(TimestampMixin, table=True):
     body: str = Field()
     mood: str | None = Field(default=None, max_length=16)
     location: str | None = Field(default=None, max_length=128)
-    tags: str | None = Field(default=None, max_length=500)
     visibility: str = Field(default="family", max_length=16)

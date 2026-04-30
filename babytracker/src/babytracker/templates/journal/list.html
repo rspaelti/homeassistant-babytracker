@@ -45,11 +45,6 @@
         {{ card.happened_local.strftime('%a, %d.%m.%Y') }}
         {% if e.location %} · 📍 {{ e.location }}{% endif %}
       </div>
-      {% if card.tags %}
-      <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
-        {% for tag in card.tags %}<span class="mr-1">#{{ tag }}</span>{% endfor %}
-      </div>
-      {% endif %}
     </div>
   </a>
   {% endfor %}

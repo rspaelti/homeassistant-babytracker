@@ -25,7 +25,45 @@
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
-  <!-- 2. Fotos -->
+  <!-- 2. Datum + Ort -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Datum</span>
+      <input type="date" name="happened_at" required
+             value="{{ happened_local }}"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Ort (optional)</span>
+      <input type="text" name="location" maxlength="128"
+             value="{{ entry.location or '' if is_edit else '' }}"
+             placeholder="z.B. Risi 20B · Klöntalersee"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+    </label>
+  </div>
+
+  <!-- 3. Stimmung (optional) -->
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Stimmung (optional)</span>
+    {% set mood_value = entry.mood if is_edit else '' %}
+    <select name="mood"
+            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+      <option value="" {% if not mood_value %}selected{% endif %}>—</option>
+      {% for emoji, label in [('😄','😄 sehr gut'),('🙂','🙂 gut'),('😐','😐 neutral'),('😔','😔 nicht so'),('😢','😢 schlecht'),('🥰','🥰 verliebt'),('😴','😴 müde'),('🎉','🎉 Meilenstein')] %}
+      <option value="{{ emoji }}" {% if mood_value == emoji %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <!-- 4. Text -->
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Text</span>
+    <textarea id="journal-body" name="body" rows="8"
+              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
+              placeholder="Was ist heute passiert?">{{ entry.body if is_edit else '' }}</textarea>
+  </label>
+
+  <!-- 5. Fotos -->
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Fotos hinzufügen (max. 20 MB pro Bild)</span>
     <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple
@@ -52,54 +90,7 @@
   </div>
   {% endif %}
 
-  <!-- 3. Wann + Ort -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <label class="block">
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Datum</span>
-      <input type="date" name="happened_at" required
-             value="{{ happened_local }}"
-             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-    </label>
-    <label class="block">
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Ort (optional)</span>
-      <input type="text" name="location" maxlength="128"
-             value="{{ entry.location or '' if is_edit else '' }}"
-             placeholder="z.B. Risi 20B · Klöntalersee"
-             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-    </label>
-  </div>
-
-  <!-- 4. Stimmung -->
-  <label class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Stimmung</span>
-    {% set mood_value = entry.mood if is_edit else '' %}
-    <select name="mood"
-            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-      <option value="" {% if not mood_value %}selected{% endif %}>—</option>
-      {% for emoji, label in [('😄','😄 sehr gut'),('🙂','🙂 gut'),('😐','😐 neutral'),('😔','😔 nicht so'),('😢','😢 schlecht'),('🥰','🥰 verliebt'),('😴','😴 müde'),('🎉','🎉 Meilenstein')] %}
-      <option value="{{ emoji }}" {% if mood_value == emoji %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-  </label>
-
-  <!-- 5. Text -->
-  <label class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Text</span>
-    <textarea id="journal-body" name="body" rows="8"
-              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
-              placeholder="Was ist heute passiert?">{{ entry.body if is_edit else '' }}</textarea>
-  </label>
-
-  <!-- 6. Tags -->
-  <label class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Tags (optional, kommagetrennt)</span>
-    <input type="text" name="tags" maxlength="500"
-           value="{{ tags_str if is_edit else '' }}"
-           placeholder="z.B. ausflug, lächeln, oma-hat-besucht"
-           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-  </label>
-
-  <!-- 7. Sichtbarkeit -->
+  <!-- 6. Sichtbarkeit -->
   <fieldset class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Sichtbarkeit</span>
     {% set vis = entry.visibility if is_edit else 'family' %}

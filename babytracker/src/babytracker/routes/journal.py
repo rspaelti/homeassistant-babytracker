@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -41,28 +40,6 @@ def _parse_date_to_dt(value: str) -> datetime:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Ungültiges Datum") from exc
     return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=TZ)
-
-
-def _parse_tags(raw: str) -> str | None:
-    """Kommagetrennt → JSON-Liste-String, leer → None."""
-    if not raw or not raw.strip():
-        return None
-    parts = [p.strip() for p in raw.split(",") if p.strip()]
-    if not parts:
-        return None
-    return json.dumps(parts, ensure_ascii=False)
-
-
-def _format_tags(stored: str | None) -> list[str]:
-    if not stored:
-        return []
-    try:
-        data = json.loads(stored)
-        if isinstance(data, list):
-            return [str(t) for t in data]
-    except (ValueError, TypeError):
-        return []
-    return []
 
 
 def _entry_photos(session: Session, entry_id: int) -> list[Photo]:
@@ -116,7 +93,6 @@ async def journal_list(
             {
                 "entry": e,
                 "happened_local": _to_local(e.happened_at),
-                "tags": _format_tags(e.tags),
                 "cover": cover,
                 "photo_count": photo_count,
             }
@@ -150,7 +126,6 @@ async def journal_new_form(
             "child_name": child.name if child else "Baby",
             "is_edit": False,
             "entry": None,
-            "tags_str": "",
             "happened_local": _today_iso(),
             "photos": [],
         },
@@ -165,7 +140,6 @@ async def journal_create(
     body: str = Form(""),
     mood: str = Form(""),
     location: str = Form(""),
-    tags: str = Form(""),
     visibility: str = Form("family"),
     photos: list[UploadFile] = File(default_factory=list),
     user: CurrentUser = Depends(get_current_user),
@@ -188,7 +162,6 @@ async def journal_create(
         body=body or "",
         mood=mood.strip() or None,
         location=location.strip()[:128] or None,
-        tags=_parse_tags(tags),
         visibility=visibility if visibility in ("family", "parents_only") else "family",
     )
     session.add(entry)
@@ -238,7 +211,6 @@ async def journal_detail(
             "entry": entry,
             "happened_local": _to_local(entry.happened_at),
             "body_html": render_markdown(entry.body),
-            "tags": _format_tags(entry.tags),
             "photos": photos,
         },
     )
@@ -267,7 +239,6 @@ async def journal_edit_form(
             "child_name": child.name if child else "Baby",
             "is_edit": True,
             "entry": entry,
-            "tags_str": ", ".join(_format_tags(entry.tags)),
             "happened_local": happened_local.strftime("%Y-%m-%d") if happened_local else _today_iso(),
             "photos": photos,
         },
@@ -283,7 +254,6 @@ async def journal_update(
     body: str = Form(""),
     mood: str = Form(""),
     location: str = Form(""),
-    tags: str = Form(""),
     visibility: str = Form("family"),
     photos: list[UploadFile] = File(default_factory=list),
     user: CurrentUser = Depends(get_current_user),
@@ -303,7 +273,6 @@ async def journal_update(
     entry.body = body or ""
     entry.mood = mood.strip() or None
     entry.location = location.strip()[:128] or None
-    entry.tags = _parse_tags(tags)
     entry.visibility = visibility if visibility in ("family", "parents_only") else "family"
     session.add(entry)
     session.commit()
