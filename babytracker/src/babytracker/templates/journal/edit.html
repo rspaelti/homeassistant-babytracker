@@ -137,8 +137,8 @@
 </form>
 {% endif %}
 
-<script src="{{ root }}/static/easymde.min.js"></script>
-<script src="{{ root }}/static/exifr.umd.min.js"></script>
+<script src="{{ root }}/static/easymde.min.js?v={{ version }}"></script>
+<script src="{{ root }}/static/exifr.umd.min.js?v={{ version }}"></script>
 <script>
   (function () {
     var ta = document.getElementById('journal-body');
@@ -160,18 +160,28 @@
     }
   })();
 
-  // EXIF-Auslese beim Foto-Auswählen → "Wann" und "Ort" auto-füllen,
-  // aber nur wenn die Felder noch leer sind (User-Eingabe nie überschreiben).
+  // EXIF-Auslese beim Foto-Auswählen → "Wann" und "Ort" auto-füllen.
+  // User-Eingaben werden nie überschrieben.
+  // Auto-Fill nur beim Anlegen, nicht beim Bearbeiten.
   (function () {
+    var isEdit = {{ 'true' if is_edit else 'false' }};
     var input = document.getElementById('photo-input');
     var statusEl = document.getElementById('photo-meta-status');
     var happenedEl = document.getElementById('happened-at');
     var locationEl = document.getElementById('location');
-    if (!input || typeof exifr === 'undefined') return;
 
-    // Auto-fill nur beim Anlegen, nicht beim Bearbeiten existierender Einträge
-    var isEdit = {{ 'true' if is_edit else 'false' }};
-    if (isEdit) return;
+    function setStatus(msg) {
+      if (statusEl) statusEl.textContent = msg;
+      try { console.log('[exif]', msg); } catch (e) {}
+    }
+
+    if (!input) { setStatus('⚠ Kein Foto-Input gefunden.'); return; }
+    if (isEdit) return; // Beim Bearbeiten bewusst stumm
+    if (typeof exifr === 'undefined') {
+      setStatus('⚠ EXIF-Lese-Modul (exifr) nicht geladen – evtl. Browser-Cache leeren oder Tab neu laden.');
+      return;
+    }
+    setStatus('Bereit – EXIF wird beim Foto-Auswählen ausgelesen.');
 
     var happenedDefault = happenedEl ? happenedEl.value : '';
 
@@ -182,8 +192,6 @@
     }
 
     async function reverseGeocode(lat, lng) {
-      // Nominatim (OpenStreetMap) – einmalige Cloud-Anfrage beim Foto-Auswählen.
-      // Bei Offline / API-Fehler fallen wir auf Koordinaten-Text zurück.
       var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
               + lat + '&lon=' + lng + '&zoom=14&accept-language=de';
       try {
@@ -196,45 +204,67 @@
         if (place && country) return place + (country === 'CH' ? '' : ', ' + country);
         if (data.name) return data.name;
       } catch (e) {
-        // Fallback: Koordinaten als Text
+        try { console.warn('[exif] reverse-geocode failed:', e); } catch (_) {}
       }
       return lat.toFixed(4) + ', ' + lng.toFixed(4);
     }
 
     input.addEventListener('change', async function () {
       if (!input.files || input.files.length === 0) {
-        statusEl.textContent = '';
+        setStatus('Keine Datei ausgewählt.');
         return;
       }
       var first = input.files[0];
-      statusEl.textContent = 'Lese Metadaten von ' + input.files.length + ' Foto'
-                            + (input.files.length === 1 ? '' : 's') + ' …';
-      try {
-        var meta = await exifr.parse(first, { gps: true, tiff: true, exif: true });
-        var changes = [];
+      setStatus('Lese Metadaten von ' + first.name + ' (' + Math.round(first.size/1024) + ' KB) …');
 
-        // Wann: nur überschreiben, wenn happened_at noch der Initialwert (jetzt) war
-        var dt = meta && (meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate);
-        if (dt && happenedEl && happenedEl.value === happenedDefault) {
+      var meta;
+      try {
+        meta = await exifr.parse(first, { gps: true, tiff: true, exif: true, ifd0: true });
+      } catch (e) {
+        setStatus('⚠ Konnte EXIF nicht lesen: ' + (e && e.message ? e.message : e));
+        return;
+      }
+
+      try { console.log('[exif] parsed:', meta); } catch (_) {}
+
+      if (!meta) {
+        setStatus('Foto enthält keine EXIF-Daten.');
+        return;
+      }
+
+      var changes = [];
+      var skipped = [];
+
+      var dt = meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate;
+      if (dt) {
+        if (happenedEl && happenedEl.value === happenedDefault) {
           happenedEl.value = fmtLocal(new Date(dt));
           changes.push('Datum');
-        }
-
-        // Ort: nur füllen, wenn Feld leer
-        if (meta && meta.latitude && meta.longitude && locationEl && !locationEl.value.trim()) {
-          var place = await reverseGeocode(meta.latitude, meta.longitude);
-          locationEl.value = place;
-          changes.push('Ort');
-        }
-
-        if (changes.length > 0) {
-          statusEl.textContent = '✓ ' + changes.join(' und ') + ' aus dem ersten Foto übernommen.';
         } else {
-          statusEl.textContent = '';
+          skipped.push('Datum (manuell geändert)');
         }
-      } catch (e) {
-        statusEl.textContent = '';
+      } else {
+        skipped.push('Datum (nicht im EXIF)');
       }
+
+      var lat = meta.latitude, lng = meta.longitude;
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        if (locationEl && !locationEl.value.trim()) {
+          setStatus('Ermittle Ortsnamen für ' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ' …');
+          var place = await reverseGeocode(lat, lng);
+          locationEl.value = place;
+          changes.push('Ort (' + place + ')');
+        } else {
+          skipped.push('Ort (manuell ausgefüllt)');
+        }
+      } else {
+        skipped.push('Ort (kein GPS im EXIF)');
+      }
+
+      var msg = '';
+      if (changes.length > 0) msg = '✓ Übernommen: ' + changes.join(', ') + '.';
+      if (skipped.length > 0) msg += (msg ? ' ' : '') + 'Übersprungen: ' + skipped.join(', ') + '.';
+      setStatus(msg || 'Keine Änderungen.');
     });
   })();
 </script>
