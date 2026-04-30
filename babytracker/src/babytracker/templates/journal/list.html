@@ -1,11 +1,11 @@
 {% extends "layout.html" %}
 
-{% block title %}Journal · Baby-Tracker{% endblock %}
+{% block title %}Tagebuch · Baby-Tracker{% endblock %}
 
 {% block content %}
 
 <div class="flex items-center justify-between mb-4">
-  <h1 class="text-xl font-bold">📖 Journal</h1>
+  <h1 class="text-xl font-bold">📖 Tagebuch</h1>
   <a href="{{ root }}/journal/new"
      class="bg-brand hover:bg-brand-dark text-white font-semibold px-4 py-2 rounded-lg text-sm">
     + Neu
@@ -19,10 +19,10 @@
   <a href="{{ root }}/journal/{{ e.id }}"
      class="block rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
     {% if card.cover %}
-    <div class="aspect-[16/9] bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+    <div class="bg-slate-100 dark:bg-slate-800 relative">
       <img src="{{ root }}/photos/{{ card.cover.id }}/thumb"
            alt="" loading="lazy"
-           class="w-full h-full object-cover">
+           class="w-full h-auto block">
       {% if card.photo_count > 1 %}
       <span class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
         📸 {{ card.photo_count }}
@@ -55,7 +55,7 @@
 {% else %}
 <div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
   <div class="text-4xl mb-3">📖</div>
-  <p class="mb-4">Noch keine Tagebuch-Einträge.</p>
+  <p class="mb-4">Noch keine Einträge im Tagebuch.</p>
   <a href="{{ root }}/journal/new"
      class="inline-block bg-brand hover:bg-brand-dark text-white font-semibold px-4 py-2 rounded-lg">
     Ersten Eintrag schreiben

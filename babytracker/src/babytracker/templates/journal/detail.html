@@ -1,10 +1,10 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ entry.title }} · Journal{% endblock %}
+{% block title %}{{ entry.title }} · Tagebuch{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-3">
-  <a href="{{ root }}/journal" class="text-slate-500 dark:text-slate-400 text-sm">← Journal</a>
+  <a href="{{ root }}/journal" class="text-slate-500 dark:text-slate-400 text-sm">← Tagebuch</a>
   <a href="{{ root }}/journal/{{ entry.id }}/edit"
      class="text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">✏️ Bearbeiten</a>
 </div>

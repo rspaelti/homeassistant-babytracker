@@ -2,7 +2,7 @@
 
 {% set max_dt = now_local_max if now_local_max is defined else happened_local %}
 
-{% block title %}{{ 'Eintrag bearbeiten' if is_edit else 'Neuer Eintrag' }} · Journal{% endblock %}
+{% block title %}{{ 'Eintrag bearbeiten' if is_edit else 'Neuer Eintrag' }} · Tagebuch{% endblock %}
 
 {% block content %}
 {% set action = (root + '/journal/' + entry.id|string + '/edit') if is_edit else (root + '/journal/new') %}
@@ -18,6 +18,7 @@
 
 <form method="post" action="{{ action }}" enctype="multipart/form-data" class="space-y-4">
 
+  <!-- 1. Titel -->
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Titel</span>
     <input type="text" name="title" required maxlength="200"
@@ -26,70 +27,14 @@
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <label class="block">
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wann?</span>
-      <input type="datetime-local" name="happened_at" required
-             value="{{ happened_local }}" max="{{ max_dt }}"
-             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-    </label>
-    <label class="block">
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Stimmung</span>
-      {% set mood_value = entry.mood if is_edit else '' %}
-      <select name="mood"
-              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-        <option value="" {% if not mood_value %}selected{% endif %}>—</option>
-        {% for emoji, label in [('😄','😄 sehr gut'),('🙂','🙂 gut'),('😐','😐 neutral'),('😔','😔 nicht so'),('😢','😢 schlecht'),('🥰','🥰 verliebt'),('😴','😴 müde'),('🎉','🎉 Meilenstein')] %}
-        <option value="{{ emoji }}" {% if mood_value == emoji %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-  </div>
-
-  <label class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Ort (optional)</span>
-    <input type="text" name="location" maxlength="128"
-           value="{{ entry.location or '' if is_edit else '' }}"
-           placeholder="z.B. Risi 20B · Klöntalersee"
-           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-  </label>
-
-  <label class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Text</span>
-    <textarea id="journal-body" name="body" rows="8"
-              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
-              placeholder="Was ist heute passiert?">{{ entry.body if is_edit else '' }}</textarea>
-  </label>
-
-  <label class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Tags (optional, kommagetrennt)</span>
-    <input type="text" name="tags" maxlength="500"
-           value="{{ tags_str if is_edit else '' }}"
-           placeholder="z.B. ausflug, lächeln, oma-hat-besucht"
-           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-  </label>
-
-  <fieldset class="block">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Sichtbarkeit</span>
-    {% set vis = entry.visibility if is_edit else 'family' %}
-    <div class="grid grid-cols-2 gap-2 mt-1">
-      <label class="flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 cursor-pointer">
-        <input type="radio" name="visibility" value="family" {% if vis == 'family' %}checked{% endif %}>
-        <span class="text-sm">👪 Familie</span>
-      </label>
-      <label class="flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 cursor-pointer">
-        <input type="radio" name="visibility" value="parents_only" {% if vis == 'parents_only' %}checked{% endif %}>
-        <span class="text-sm">🔒 Nur Eltern</span>
-      </label>
-    </div>
-  </fieldset>
-
+  <!-- 2. Fotos (zuerst, damit EXIF Wann + Ort auto-füllen kann) -->
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Fotos hinzufügen (max. 20 MB pro Bild)</span>
-    <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple
+    <input type="file" id="photo-input" name="photos" accept="image/jpeg,image/png,image/webp" multiple
            class="mt-1 w-full text-sm text-slate-700 dark:text-slate-300
                   file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0
                   file:bg-brand file:text-white file:font-semibold">
+    <span id="photo-meta-status" class="block mt-1 text-xs text-slate-500 dark:text-slate-400"></span>
   </label>
 
   {% if is_edit and photos %}
@@ -113,6 +58,69 @@
   </div>
   {% endif %}
 
+  <!-- 3. Wann + Ort (werden ggf. aus EXIF des ersten neuen Fotos auto-gefüllt) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wann?</span>
+      <input type="datetime-local" id="happened-at" name="happened_at" required
+             value="{{ happened_local }}" max="{{ max_dt }}"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Ort (optional)</span>
+      <input type="text" id="location" name="location" maxlength="128"
+             value="{{ entry.location or '' if is_edit else '' }}"
+             placeholder="z.B. Risi 20B · Klöntalersee"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+    </label>
+  </div>
+
+  <!-- 4. Stimmung -->
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Stimmung</span>
+    {% set mood_value = entry.mood if is_edit else '' %}
+    <select name="mood"
+            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+      <option value="" {% if not mood_value %}selected{% endif %}>—</option>
+      {% for emoji, label in [('😄','😄 sehr gut'),('🙂','🙂 gut'),('😐','😐 neutral'),('😔','😔 nicht so'),('😢','😢 schlecht'),('🥰','🥰 verliebt'),('😴','😴 müde'),('🎉','🎉 Meilenstein')] %}
+      <option value="{{ emoji }}" {% if mood_value == emoji %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <!-- 5. Text -->
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Text</span>
+    <textarea id="journal-body" name="body" rows="8"
+              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"
+              placeholder="Was ist heute passiert?">{{ entry.body if is_edit else '' }}</textarea>
+  </label>
+
+  <!-- 6. Tags -->
+  <label class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Tags (optional, kommagetrennt)</span>
+    <input type="text" name="tags" maxlength="500"
+           value="{{ tags_str if is_edit else '' }}"
+           placeholder="z.B. ausflug, lächeln, oma-hat-besucht"
+           class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+  </label>
+
+  <!-- 7. Sichtbarkeit -->
+  <fieldset class="block">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Sichtbarkeit</span>
+    {% set vis = entry.visibility if is_edit else 'family' %}
+    <div class="grid grid-cols-2 gap-2 mt-1">
+      <label class="flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 cursor-pointer">
+        <input type="radio" name="visibility" value="family" {% if vis == 'family' %}checked{% endif %}>
+        <span class="text-sm">👪 Familie</span>
+      </label>
+      <label class="flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 cursor-pointer">
+        <input type="radio" name="visibility" value="parents_only" {% if vis == 'parents_only' %}checked{% endif %}>
+        <span class="text-sm">🔒 Nur Eltern</span>
+      </label>
+    </div>
+  </fieldset>
+
   <button type="submit"
           class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-4 rounded-xl text-lg">
     {{ 'Speichern' if is_edit else 'Eintrag erstellen' }}
@@ -130,23 +138,103 @@
 {% endif %}
 
 <script src="{{ root }}/static/easymde.min.js"></script>
+<script src="{{ root }}/static/exifr.umd.min.js"></script>
 <script>
   (function () {
     var ta = document.getElementById('journal-body');
-    if (!ta || typeof EasyMDE === 'undefined') return;
-    new EasyMDE({
-      element: ta,
-      autoDownloadFontAwesome: false,
-      spellChecker: false,
-      status: false,
-      minHeight: '180px',
-      placeholder: 'Was ist heute passiert?',
-      toolbar: [
-        'bold', 'italic', 'heading', '|',
-        'unordered-list', 'ordered-list', '|',
-        'quote', 'link', '|',
-        'preview'
-      ]
+    if (ta && typeof EasyMDE !== 'undefined') {
+      new EasyMDE({
+        element: ta,
+        autoDownloadFontAwesome: false,
+        spellChecker: false,
+        status: false,
+        minHeight: '180px',
+        placeholder: 'Was ist heute passiert?',
+        toolbar: [
+          'bold', 'italic', 'heading', '|',
+          'unordered-list', 'ordered-list', '|',
+          'quote', 'link', '|',
+          'preview'
+        ]
+      });
+    }
+  })();
+
+  // EXIF-Auslese beim Foto-Auswählen → "Wann" und "Ort" auto-füllen,
+  // aber nur wenn die Felder noch leer sind (User-Eingabe nie überschreiben).
+  (function () {
+    var input = document.getElementById('photo-input');
+    var statusEl = document.getElementById('photo-meta-status');
+    var happenedEl = document.getElementById('happened-at');
+    var locationEl = document.getElementById('location');
+    if (!input || typeof exifr === 'undefined') return;
+
+    // Auto-fill nur beim Anlegen, nicht beim Bearbeiten existierender Einträge
+    var isEdit = {{ 'true' if is_edit else 'false' }};
+    if (isEdit) return;
+
+    var happenedDefault = happenedEl ? happenedEl.value : '';
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function fmtLocal(d) {
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+           + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    async function reverseGeocode(lat, lng) {
+      // Nominatim (OpenStreetMap) – einmalige Cloud-Anfrage beim Foto-Auswählen.
+      // Bei Offline / API-Fehler fallen wir auf Koordinaten-Text zurück.
+      var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
+              + lat + '&lon=' + lng + '&zoom=14&accept-language=de';
+      try {
+        var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var data = await res.json();
+        var a = data.address || {};
+        var place = a.village || a.town || a.city || a.suburb || a.neighbourhood || a.hamlet || '';
+        var country = a.country_code ? a.country_code.toUpperCase() : '';
+        if (place && country) return place + (country === 'CH' ? '' : ', ' + country);
+        if (data.name) return data.name;
+      } catch (e) {
+        // Fallback: Koordinaten als Text
+      }
+      return lat.toFixed(4) + ', ' + lng.toFixed(4);
+    }
+
+    input.addEventListener('change', async function () {
+      if (!input.files || input.files.length === 0) {
+        statusEl.textContent = '';
+        return;
+      }
+      var first = input.files[0];
+      statusEl.textContent = 'Lese Metadaten von ' + input.files.length + ' Foto'
+                            + (input.files.length === 1 ? '' : 's') + ' …';
+      try {
+        var meta = await exifr.parse(first, { gps: true, tiff: true, exif: true });
+        var changes = [];
+
+        // Wann: nur überschreiben, wenn happened_at noch der Initialwert (jetzt) war
+        var dt = meta && (meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate);
+        if (dt && happenedEl && happenedEl.value === happenedDefault) {
+          happenedEl.value = fmtLocal(new Date(dt));
+          changes.push('Datum');
+        }
+
+        // Ort: nur füllen, wenn Feld leer
+        if (meta && meta.latitude && meta.longitude && locationEl && !locationEl.value.trim()) {
+          var place = await reverseGeocode(meta.latitude, meta.longitude);
+          locationEl.value = place;
+          changes.push('Ort');
+        }
+
+        if (changes.length > 0) {
+          statusEl.textContent = '✓ ' + changes.join(' und ') + ' aus dem ersten Foto übernommen.';
+        } else {
+          statusEl.textContent = '';
+        }
+      } catch (e) {
+        statusEl.textContent = '';
+      }
     });
   })();
 </script>
