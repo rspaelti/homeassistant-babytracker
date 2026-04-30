@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ entry.title }} · Journal{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-3">
+  <a href="{{ root }}/journal" class="text-slate-500 dark:text-slate-400 text-sm">← Journal</a>
+  <a href="{{ root }}/journal/{{ entry.id }}/edit"
+     class="text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">✏️ Bearbeiten</a>
+</div>
+
+<header class="mb-4">
+  <div class="flex items-center gap-2">
+    {% if entry.mood %}<span class="text-3xl">{{ entry.mood }}</span>{% endif %}
+    <h1 class="text-2xl font-bold flex-1">{{ entry.title }}</h1>
+  </div>
+  <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+    {{ happened_local.strftime('%A, %d.%m.%Y · %H:%M') }}
+    {% if entry.location %} · 📍 {{ entry.location }}{% endif %}
+    {% if entry.visibility == 'parents_only' %} · 🔒 Nur Eltern{% endif %}
+  </div>
+  {% if tags %}
+  <div class="flex flex-wrap gap-1 mt-2">
+    {% for tag in tags %}
+    <span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">#{{ tag }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</header>
+
+{% if photos %}
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"
+     x-data="{ open: false, idx: 0, photos: {{ photos|map(attribute='id')|list|tojson }} }">
+  {% for p in photos %}
+  <button type="button"
+          @click="idx = {{ loop.index0 }}; open = true"
+          class="aspect-square overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
+    <img src="{{ root }}/photos/{{ p.id }}/thumb" loading="lazy"
+         alt="Foto {{ loop.index }}"
+         class="w-full h-full object-cover hover:opacity-90 transition">
+  </button>
+  {% endfor %}
+
+  <div x-show="open" x-cloak
+       @keydown.escape.window="open = false"
+       @click.self="open = false"
+       class="fixed inset-0 z-40 bg-black/90 flex items-center justify-center p-4">
+    <button type="button" @click="open = false"
+            class="absolute top-4 right-4 text-white text-3xl leading-none" aria-label="Schliessen">×</button>
+    <button type="button" @click="idx = (idx - 1 + photos.length) % photos.length"
+            x-show="photos.length > 1"
+            class="absolute left-2 sm:left-4 text-white text-4xl leading-none px-3" aria-label="Vorheriges">‹</button>
+    <img :src="'{{ root }}/photos/' + photos[idx]"
+         class="max-h-[85vh] max-w-full object-contain rounded-lg">
+    <button type="button" @click="idx = (idx + 1) % photos.length"
+            x-show="photos.length > 1"
+            class="absolute right-2 sm:right-4 text-white text-4xl leading-none px-3" aria-label="Nächstes">›</button>
+    <a :href="'{{ root }}/photos/' + photos[idx] + '/original'"
+       download
+       class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 text-slate-900 text-sm font-semibold px-4 py-2 rounded-lg">
+      Original herunterladen
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% if body_html %}
+<article class="prose prose-slate dark:prose-invert max-w-none
+                prose-headings:font-semibold
+                prose-p:my-2 prose-li:my-0.5">
+  {{ body_html | safe }}
+</article>
+{% endif %}
+
+<style>
+  /* Tailwind CDN bringt prose-Plugin nicht mit – Minimal-Styling für gerendertes Markdown */
+  article p { margin: 0.5rem 0; line-height: 1.55; }
+  article h1, article h2, article h3 { font-weight: 600; margin: 1rem 0 0.5rem; }
+  article h1 { font-size: 1.4rem; }
+  article h2 { font-size: 1.25rem; }
+  article h3 { font-size: 1.1rem; }
+  article ul, article ol { margin: 0.5rem 0 0.5rem 1.25rem; }
+  article ul { list-style: disc; }
+  article ol { list-style: decimal; }
+  article blockquote { border-left: 3px solid #cbd5e1; padding-left: 0.75rem; margin: 0.5rem 0; color: #64748b; }
+  .dark article blockquote { border-color: #475569; color: #94a3b8; }
+  article a { color: #f59e0b; text-decoration: underline; }
+  article code { background: #f1f5f9; padding: 0.1em 0.3em; border-radius: 0.25rem; font-size: 0.9em; }
+  .dark article code { background: #1e293b; }
+  article pre { background: #1e293b; color: #e2e8f0; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.5rem 0; }
+  article pre code { background: transparent; padding: 0; }
+  [x-cloak] { display: none !important; }
+</style>
+
+{% if photos %}
+<details class="mt-6 text-xs text-slate-500 dark:text-slate-400">
+  <summary class="cursor-pointer">Foto-Metadaten</summary>
+  <ul class="mt-2 space-y-1">
+    {% for p in photos %}
+    <li>
+      Foto {{ loop.index }}:
+      {{ p.taken_at.strftime('%d.%m.%Y %H:%M') if p.taken_at else 'unbekannt' }}
+      {% if p.camera_make or p.camera_model %} · {{ p.camera_make }} {{ p.camera_model }}{% endif %}
+      {% if p.gps_lat and p.gps_lng %}
+      · 📍 <a target="_blank" rel="noopener"
+              href="https://www.openstreetmap.org/?mlat={{ p.gps_lat }}&mlon={{ p.gps_lng }}#map=17/{{ p.gps_lat }}/{{ p.gps_lng }}">
+        {{ '%.5f'|format(p.gps_lat) }}, {{ '%.5f'|format(p.gps_lng) }}
+      </a>
+      {% endif %}
+      {% if p.width and p.height %}· {{ p.width }}×{{ p.height }}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+
+{% endblock %}

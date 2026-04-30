@@ -16,5 +16,4 @@ class MotherLog(TimestampMixin, table=True):
     category: str = Field(max_length=32)
     value_num: float | None = Field(default=None)
     value_text: str | None = Field(default=None, max_length=500)
-    photo_path: str | None = Field(default=None, max_length=255)
     notes: str | None = Field(default=None, max_length=1000)

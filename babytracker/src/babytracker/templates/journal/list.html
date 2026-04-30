@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}Journal · Baby-Tracker{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold">📖 Journal</h1>
+  <a href="{{ root }}/journal/new"
+     class="bg-brand hover:bg-brand-dark text-white font-semibold px-4 py-2 rounded-lg text-sm">
+    + Neu
+  </a>
+</div>
+
+{% if cards %}
+<div class="space-y-3">
+  {% for card in cards %}
+  {% set e = card.entry %}
+  <a href="{{ root }}/journal/{{ e.id }}"
+     class="block rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+    {% if card.cover %}
+    <div class="aspect-[16/9] bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+      <img src="{{ root }}/photos/{{ card.cover.id }}/thumb"
+           alt="" loading="lazy"
+           class="w-full h-full object-cover">
+      {% if card.photo_count > 1 %}
+      <span class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+        📸 {{ card.photo_count }}
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+    <div class="p-4">
+      <div class="flex items-start gap-2">
+        {% if e.mood %}<span class="text-2xl leading-none">{{ e.mood }}</span>{% endif %}
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold truncate">{{ e.title }}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {{ card.happened_local.strftime('%a, %d.%m.%Y · %H:%M') }}
+            {% if e.location %} · 📍 {{ e.location }}{% endif %}
+          </div>
+        </div>
+      </div>
+      {% if card.tags %}
+      <div class="flex flex-wrap gap-1 mt-2">
+        {% for tag in card.tags %}
+        <span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">#{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
+  <div class="text-4xl mb-3">📖</div>
+  <p class="mb-4">Noch keine Tagebuch-Einträge.</p>
+  <a href="{{ root }}/journal/new"
+     class="inline-block bg-brand hover:bg-brand-dark text-white font-semibold px-4 py-2 rounded-lg">
+    Ersten Eintrag schreiben
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

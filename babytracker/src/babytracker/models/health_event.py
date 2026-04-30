@@ -17,5 +17,4 @@ class HealthEvent(TimestampMixin, table=True):
     score: int | None = Field(default=None)
     status: str | None = Field(default=None, max_length=32)
     notes: str | None = Field(default=None, max_length=1000)
-    photo_path: str | None = Field(default=None, max_length=255)
     created_by: int | None = Field(default=None, foreign_key="users.id")

@@ -23,6 +23,7 @@ from babytracker.routes import diaper as diaper_routes
 from babytracker.routes import feed as feed_routes
 from babytracker.routes import growth as growth_routes
 from babytracker.routes import health as health_routes
+from babytracker.routes import journal as journal_routes
 from babytracker.routes import meds as meds_routes
 from babytracker.routes import more as more_routes
 from babytracker.routes import mother as mother_routes
@@ -94,6 +95,7 @@ app.include_router(quick_routes.router)
 app.include_router(warnings_routes.router)
 app.include_router(vitals_routes.router)
 app.include_router(more_routes.router)
+app.include_router(journal_routes.router)
 app.include_router(placeholder_routes.router)
 
 
