@@ -49,9 +49,6 @@
       </div>
       {% endfor %}
     </div>
-    {% for p in photos %}
-    <form id="photo-delete-{{ p.id }}" method="post" action="{{ root }}/photos/{{ p.id }}/delete" class="hidden"></form>
-    {% endfor %}
   </div>
   {% endif %}
 
@@ -123,6 +120,13 @@
     {{ 'Speichern' if is_edit else 'Eintrag erstellen' }}
   </button>
 </form>
+
+{# Foto-Lösch-Forms ausserhalb des Eintrags-Forms (HTML5 erlaubt keine verschachtelten <form>) #}
+{% if is_edit and photos %}
+{% for p in photos %}
+<form id="photo-delete-{{ p.id }}" method="post" action="{{ root }}/photos/{{ p.id }}/delete" class="hidden"></form>
+{% endfor %}
+{% endif %}
 
 {% if is_edit %}
 <form method="post" action="{{ root }}/journal/{{ entry.id }}/delete" class="mt-6"
