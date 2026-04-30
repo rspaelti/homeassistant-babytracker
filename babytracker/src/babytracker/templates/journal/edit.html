@@ -1,14 +1,12 @@
 {% extends "layout.html" %}
 
-{% set max_dt = now_local_max if now_local_max is defined else happened_local %}
-
 {% block title %}{{ 'Eintrag bearbeiten' if is_edit else 'Neuer Eintrag' }} · Tagebuch{% endblock %}
 
 {% block content %}
 {% set action = (root + '/journal/' + entry.id|string + '/edit') if is_edit else (root + '/journal/new') %}
 {% set back = (root + '/journal/' + entry.id|string) if is_edit else (root + '/journal') %}
 
-<link rel="stylesheet" href="{{ root }}/static/easymde.min.css">
+<link rel="stylesheet" href="{{ root }}/static/easymde.min.css?v={{ version }}">
 
 <div class="flex items-center gap-2 mb-3">
   <a href="{{ back }}" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
@@ -27,14 +25,13 @@
            class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
   </label>
 
-  <!-- 2. Fotos (zuerst, damit EXIF Wann + Ort auto-füllen kann) -->
+  <!-- 2. Fotos -->
   <label class="block">
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Fotos hinzufügen (max. 20 MB pro Bild)</span>
-    <input type="file" id="photo-input" name="photos" accept="image/jpeg,image/png,image/webp" multiple
+    <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple
            class="mt-1 w-full text-sm text-slate-700 dark:text-slate-300
                   file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0
                   file:bg-brand file:text-white file:font-semibold">
-    <span id="photo-meta-status" class="block mt-1 text-xs text-slate-500 dark:text-slate-400"></span>
   </label>
 
   {% if is_edit and photos %}
@@ -58,17 +55,17 @@
   </div>
   {% endif %}
 
-  <!-- 3. Wann + Ort (werden ggf. aus EXIF des ersten neuen Fotos auto-gefüllt) -->
+  <!-- 3. Wann + Ort -->
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <label class="block">
-      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Wann?</span>
-      <input type="datetime-local" id="happened-at" name="happened_at" required
-             value="{{ happened_local }}" max="{{ max_dt }}"
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Datum</span>
+      <input type="date" name="happened_at" required
+             value="{{ happened_local }}"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
     </label>
     <label class="block">
       <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Ort (optional)</span>
-      <input type="text" id="location" name="location" maxlength="128"
+      <input type="text" name="location" maxlength="128"
              value="{{ entry.location or '' if is_edit else '' }}"
              placeholder="z.B. Risi 20B · Klöntalersee"
              class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
@@ -138,7 +135,6 @@
 {% endif %}
 
 <script src="{{ root }}/static/easymde.min.js?v={{ version }}"></script>
-<script src="{{ root }}/static/exifr.umd.min.js?v={{ version }}"></script>
 <script>
   (function () {
     var ta = document.getElementById('journal-body');
@@ -158,114 +154,6 @@
         ]
       });
     }
-  })();
-
-  // EXIF-Auslese beim Foto-Auswählen → "Wann" und "Ort" auto-füllen.
-  // User-Eingaben werden nie überschrieben.
-  // Auto-Fill nur beim Anlegen, nicht beim Bearbeiten.
-  (function () {
-    var isEdit = {{ 'true' if is_edit else 'false' }};
-    var input = document.getElementById('photo-input');
-    var statusEl = document.getElementById('photo-meta-status');
-    var happenedEl = document.getElementById('happened-at');
-    var locationEl = document.getElementById('location');
-
-    function setStatus(msg) {
-      if (statusEl) statusEl.textContent = msg;
-      try { console.log('[exif]', msg); } catch (e) {}
-    }
-
-    if (!input) { setStatus('⚠ Kein Foto-Input gefunden.'); return; }
-    if (isEdit) return; // Beim Bearbeiten bewusst stumm
-    if (typeof exifr === 'undefined') {
-      setStatus('⚠ EXIF-Lese-Modul (exifr) nicht geladen – evtl. Browser-Cache leeren oder Tab neu laden.');
-      return;
-    }
-    setStatus('Bereit – EXIF wird beim Foto-Auswählen ausgelesen.');
-
-    var happenedDefault = happenedEl ? happenedEl.value : '';
-
-    function pad(n) { return n < 10 ? '0' + n : '' + n; }
-    function fmtLocal(d) {
-      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
-           + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-    }
-
-    async function reverseGeocode(lat, lng) {
-      var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
-              + lat + '&lon=' + lng + '&zoom=14&accept-language=de';
-      try {
-        var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        var data = await res.json();
-        var a = data.address || {};
-        var place = a.village || a.town || a.city || a.suburb || a.neighbourhood || a.hamlet || '';
-        var country = a.country_code ? a.country_code.toUpperCase() : '';
-        if (place && country) return place + (country === 'CH' ? '' : ', ' + country);
-        if (data.name) return data.name;
-      } catch (e) {
-        try { console.warn('[exif] reverse-geocode failed:', e); } catch (_) {}
-      }
-      return lat.toFixed(4) + ', ' + lng.toFixed(4);
-    }
-
-    input.addEventListener('change', async function () {
-      if (!input.files || input.files.length === 0) {
-        setStatus('Keine Datei ausgewählt.');
-        return;
-      }
-      var first = input.files[0];
-      setStatus('Lese Metadaten von ' + first.name + ' (' + Math.round(first.size/1024) + ' KB) …');
-
-      var meta;
-      try {
-        meta = await exifr.parse(first, { gps: true, tiff: true, exif: true, ifd0: true });
-      } catch (e) {
-        setStatus('⚠ Konnte EXIF nicht lesen: ' + (e && e.message ? e.message : e));
-        return;
-      }
-
-      try { console.log('[exif] parsed:', meta); } catch (_) {}
-
-      if (!meta) {
-        setStatus('Foto enthält keine EXIF-Daten.');
-        return;
-      }
-
-      var changes = [];
-      var skipped = [];
-
-      var dt = meta.DateTimeOriginal || meta.CreateDate || meta.ModifyDate;
-      if (dt) {
-        if (happenedEl && happenedEl.value === happenedDefault) {
-          happenedEl.value = fmtLocal(new Date(dt));
-          changes.push('Datum');
-        } else {
-          skipped.push('Datum (manuell geändert)');
-        }
-      } else {
-        skipped.push('Datum (nicht im EXIF)');
-      }
-
-      var lat = meta.latitude, lng = meta.longitude;
-      if (typeof lat === 'number' && typeof lng === 'number') {
-        if (locationEl && !locationEl.value.trim()) {
-          setStatus('Ermittle Ortsnamen für ' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ' …');
-          var place = await reverseGeocode(lat, lng);
-          locationEl.value = place;
-          changes.push('Ort (' + place + ')');
-        } else {
-          skipped.push('Ort (manuell ausgefüllt)');
-        }
-      } else {
-        skipped.push('Ort (kein GPS im EXIF)');
-      }
-
-      var msg = '';
-      if (changes.length > 0) msg = '✓ Übernommen: ' + changes.join(', ') + '.';
-      if (skipped.length > 0) msg += (msg ? ' ' : '') + 'Übersprungen: ' + skipped.join(', ') + '.';
-      setStatus(msg || 'Keine Änderungen.');
-    });
   })();
 </script>
 

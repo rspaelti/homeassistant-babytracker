@@ -15,7 +15,7 @@
     <h1 class="text-2xl font-bold flex-1">{{ entry.title }}</h1>
   </div>
   <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-    {{ happened_local.strftime('%A, %d.%m.%Y · %H:%M') }}
+    {{ happened_local.strftime('%A, %d.%m.%Y') }}
     {% if entry.location %} · 📍 {{ entry.location }}{% endif %}
     {% if entry.visibility == 'parents_only' %} · 🔒 Nur Eltern{% endif %}
   </div>

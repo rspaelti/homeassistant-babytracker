@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -18,8 +19,6 @@ from babytracker.routes._shared import (
     TZ,
     get_child,
     get_user_id,
-    now_local_iso,
-    parse_local_datetime,
 )
 from babytracker.services import photos as photo_service
 from babytracker.services.markdown_render import render as render_markdown
@@ -28,6 +27,20 @@ router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
 LINKED_TABLE = "journal_entries"
+
+
+def _today_iso() -> str:
+    """Heutiges Datum lokal im YYYY-MM-DD-Format (für <input type='date'>)."""
+    return datetime.now(TZ).strftime("%Y-%m-%d")
+
+
+def _parse_date_to_dt(value: str) -> datetime:
+    """Parst YYYY-MM-DD und liefert datetime mit Zeit 00:00 lokal."""
+    try:
+        d = datetime.fromisoformat(value).date()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Ungültiges Datum") from exc
+    return datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=TZ)
 
 
 def _parse_tags(raw: str) -> str | None:
@@ -138,8 +151,7 @@ async def journal_new_form(
             "is_edit": False,
             "entry": None,
             "tags_str": "",
-            "happened_local": now_local_iso(),
-            "now_local_max": now_local_iso(),
+            "happened_local": _today_iso(),
             "photos": [],
         },
     )
@@ -161,10 +173,7 @@ async def journal_create(
 ):
     if not title.strip():
         raise HTTPException(status_code=400, detail="Titel erforderlich")
-    try:
-        happened_dt = parse_local_datetime(happened_at)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Ungültiges Datum") from exc
+    happened_dt = _parse_date_to_dt(happened_at)
 
     child = get_child(session)
     user_id = get_user_id(session, user)
@@ -259,8 +268,7 @@ async def journal_edit_form(
             "is_edit": True,
             "entry": entry,
             "tags_str": ", ".join(_format_tags(entry.tags)),
-            "happened_local": happened_local.strftime("%Y-%m-%dT%H:%M") if happened_local else now_local_iso(),
-            "now_local_max": now_local_iso(),
+            "happened_local": happened_local.strftime("%Y-%m-%d") if happened_local else _today_iso(),
             "photos": photos,
         },
     )
@@ -286,10 +294,7 @@ async def journal_update(
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
     if not title.strip():
         raise HTTPException(status_code=400, detail="Titel erforderlich")
-    try:
-        happened_dt = parse_local_datetime(happened_at)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Ungültiges Datum") from exc
+    happened_dt = _parse_date_to_dt(happened_at)
 
     user_id = get_user_id(session, user)
 

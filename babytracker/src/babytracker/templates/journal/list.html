@@ -13,39 +13,41 @@
 </div>
 
 {% if cards %}
-<div class="space-y-3">
+<div class="space-y-2">
   {% for card in cards %}
   {% set e = card.entry %}
   <a href="{{ root }}/journal/{{ e.id }}"
-     class="block rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+     class="flex gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+
     {% if card.cover %}
-    <div class="bg-slate-100 dark:bg-slate-800 relative">
+    <div class="shrink-0 relative">
       <img src="{{ root }}/photos/{{ card.cover.id }}/thumb"
            alt="" loading="lazy"
-           class="w-full h-auto block">
+           class="w-20 h-20 object-cover rounded-lg bg-slate-100 dark:bg-slate-800">
       {% if card.photo_count > 1 %}
-      <span class="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-        📸 {{ card.photo_count }}
+      <span class="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-tl-md rounded-br-lg">
+        +{{ card.photo_count - 1 }}
       </span>
       {% endif %}
     </div>
+    {% else %}
+    <div class="shrink-0 w-20 h-20 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl text-slate-400">
+      📖
+    </div>
     {% endif %}
-    <div class="p-4">
-      <div class="flex items-start gap-2">
-        {% if e.mood %}<span class="text-2xl leading-none">{{ e.mood }}</span>{% endif %}
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold truncate">{{ e.title }}</div>
-          <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ card.happened_local.strftime('%a, %d.%m.%Y · %H:%M') }}
-            {% if e.location %} · 📍 {{ e.location }}{% endif %}
-          </div>
-        </div>
+
+    <div class="flex-1 min-w-0">
+      <div class="flex items-start gap-1.5">
+        {% if e.mood %}<span class="text-lg leading-tight">{{ e.mood }}</span>{% endif %}
+        <div class="font-semibold leading-tight truncate">{{ e.title }}</div>
+      </div>
+      <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        {{ card.happened_local.strftime('%a, %d.%m.%Y') }}
+        {% if e.location %} · 📍 {{ e.location }}{% endif %}
       </div>
       {% if card.tags %}
-      <div class="flex flex-wrap gap-1 mt-2">
-        {% for tag in card.tags %}
-        <span class="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">#{{ tag }}</span>
-        {% endfor %}
+      <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+        {% for tag in card.tags %}<span class="mr-1">#{{ tag }}</span>{% endfor %}
       </div>
       {% endif %}
     </div>
