@@ -73,9 +73,16 @@ def group_into_meals(
 ) -> list[Meal]:
     """Gruppiert chronologisch sortierte Feeding-Einträge in logische Mahlzeiten.
 
-    Ein neuer Eintrag wird zur laufenden Mahlzeit gezählt, wenn er innerhalb
-    ``combo_window_min`` Minuten nach dem Ende der laufenden Mahlzeit beginnt.
-    Sonst wird eine neue Mahlzeit eröffnet.
+    Combo-Regel (nur Stillen → Schoppen, asymmetrisch): Ein Schoppen wird zur
+    laufenden Mahlzeit gezählt, wenn (a) die laufende Mahlzeit Stillen enthält
+    und (b) der Schoppen innerhalb ``combo_window_min`` Minuten nach dem Ende
+    der laufenden Mahlzeit beginnt. In allen anderen Fällen (Stillen→Stillen,
+    Schoppen→Stillen, Schoppen→Schoppen) wird eine neue Mahlzeit eröffnet.
+
+    Begründung: Hebammen-Faustregel betrachtet "Stillen + Schoppen als
+    Auffüllung" als eine Mahlzeit. Zwei Stillen-Sitzungen kurz hintereinander
+    gelten dagegen als zwei Mahlzeiten – konsistent mit der Roh-Anzeige im
+    Verlauf-Filter.
     """
     sorted_feeds = sorted(feedings, key=lambda f: as_aware(f.started_at))
     meals: list[Meal] = []
@@ -86,7 +93,14 @@ def group_into_meals(
         f_start = as_aware(f.started_at)
         f_end = _feed_end(f)
 
-        if current is not None and f_start - current.end_at <= window:
+        is_followup_bottle = (
+            current is not None
+            and f.kind == "bottle"
+            and current.has_breast
+            and f_start - current.end_at <= window
+        )
+
+        if is_followup_bottle:
             target = current
         else:
             target = Meal(start_at=f_start, end_at=f_end)
