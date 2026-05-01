@@ -13,7 +13,7 @@ from babytracker.db import get_session
 from babytracker.models import Feeding
 from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_past_datetime
 from babytracker.services.daily import feed_summary, format_ago
-from babytracker.services.feeding import daily_recommendation, last_meal
+from babytracker.services.feeding import daily_breakdown, daily_recommendation, last_meal
 from babytracker.services.warnings import estimate_feed_interval
 
 router = APIRouter()
@@ -35,6 +35,7 @@ def _redirect_to_setup(request: Request) -> RedirectResponse:
 @router.get("/feed", response_class=HTMLResponse)
 async def feed_index(
     request: Request,
+    view: str = "list",  # list | days
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -42,15 +43,23 @@ async def feed_index(
     if not child:
         return _redirect_to_setup(request)
 
+    if view not in ("list", "days"):
+        view = "list"
+
     today = datetime.now(TZ).date()
     summary = feed_summary(session, child.id, today)
 
-    recent = session.exec(
-        select(Feeding)
-        .where(Feeding.child_id == child.id)
-        .order_by(Feeding.started_at.desc())
-        .limit(15)
-    ).all()
+    recent: list[Feeding] = []
+    breakdown = []
+    if view == "list":
+        recent = list(session.exec(
+            select(Feeding)
+            .where(Feeding.child_id == child.id)
+            .order_by(Feeding.started_at.desc())
+            .limit(15)
+        ).all())
+    else:
+        breakdown = daily_breakdown(session, child, days=30)
 
     now = datetime.now(TZ)
     est = estimate_feed_interval(session, child, now)
@@ -71,6 +80,8 @@ async def feed_index(
             "child_name": child.name,
             "summary": summary,
             "recent": recent,
+            "breakdown": breakdown,
+            "view": view,
             "format_ago": format_ago,
             "interval_hours": est.hours,
             "interval_base": est.base_hours,

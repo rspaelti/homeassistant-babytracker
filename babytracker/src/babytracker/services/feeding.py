@@ -239,3 +239,86 @@ def daily_recommendation(
         today_ml=today_ml,
         today_meals=today_meals,
     )
+
+
+@dataclass
+class DayBreakdown:
+    """Tagesbilanz für die 30-Tage-Übersicht auf der Ernährungs-Seite."""
+
+    date_iso: str           # "2026-05-01"
+    weekday: str            # "Do"
+    day_of_life: int        # Lebenstag (Tag 1 = Geburtstag)
+    meals: int              # Anzahl Mahlzeiten (Combo-aware)
+    breast_min: int
+    bottle_ml: int
+    estimated_ml: int       # Schoppen + Stillen × 1.5 ml/min
+    daily_target_ml: int
+    pct: int                # estimated_ml / daily_target_ml × 100, gecappt 100
+
+
+_WEEKDAYS_DE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+
+def daily_breakdown(
+    session: Session,
+    child: Child,
+    days: int = 30,
+    now: datetime | None = None,
+) -> list[DayBreakdown]:
+    """Liefert pro Tag der letzten ``days`` Tage eine Bilanz, neueste zuerst.
+
+    Mahlzeiten sind Combo-aware (Stillen + Schoppen <20 Min = 1). Tagesbedarf
+    ist konstant über alle Tage = aktuelles Referenzgewicht / 6 (vereinfacht;
+    historische Gewichts-Veränderung wird nicht rückwirkend angewendet).
+    """
+    now = now or datetime.now(TZ)
+    today = now.date()
+    end_date = today
+    start_date = today - timedelta(days=days - 1)
+
+    start_utc = datetime.combine(start_date, time.min, tzinfo=TZ)
+    end_utc = datetime.combine(end_date, time.min, tzinfo=TZ) + timedelta(days=1)
+
+    feeds = session.exec(
+        select(Feeding)
+        .where(Feeding.child_id == child.id)
+        .where(Feeding.started_at >= start_utc, Feeding.started_at < end_utc)
+        .order_by(Feeding.started_at.asc())
+    ).all()
+
+    by_day: dict[str, list[Feeding]] = {}
+    for f in feeds:
+        key = as_aware(f.started_at).astimezone(TZ).strftime("%Y-%m-%d")
+        by_day.setdefault(key, []).append(f)
+
+    ref_g = reference_weight_g(session, child)
+    daily_target = int(round(ref_g / 6)) if ref_g else 0
+    birth_local = as_aware(child.birth_at).astimezone(TZ).date() if child.birth_at else None
+
+    out: list[DayBreakdown] = []
+    cursor = end_date
+    while cursor >= start_date:
+        key = cursor.strftime("%Y-%m-%d")
+        day_feeds = by_day.get(key, [])
+        meals = group_into_meals(day_feeds)
+        breast_min = sum(_breast_total_min(f) for f in day_feeds)
+        bottle_ml = sum((f.bottle_taken_ml or 0) for f in day_feeds)
+        est_ml = sum(m.estimated_ml for m in meals)
+        pct = 0
+        if daily_target > 0:
+            pct = min(100, int(round(est_ml / daily_target * 100)))
+        day_of_life = (cursor - birth_local).days + 1 if birth_local else 0
+        out.append(DayBreakdown(
+            date_iso=key,
+            weekday=_WEEKDAYS_DE[cursor.weekday()],
+            day_of_life=day_of_life,
+            meals=len(meals),
+            breast_min=breast_min,
+            bottle_ml=bottle_ml,
+            estimated_ml=est_ml,
+            daily_target_ml=daily_target,
+            pct=pct,
+        ))
+        cursor -= timedelta(days=1)
+
+    return out
