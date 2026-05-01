@@ -221,11 +221,18 @@ def daily_recommendation(
     ).all()
     history_meals = group_into_meals(history)
 
-    days_with_data: set[str] = set()
-    for m in history_meals:
-        days_with_data.add(m.start_at.astimezone(TZ).strftime("%Y-%m-%d"))
-    avg_window = max(1, len(days_with_data))
-    avg_meals = len(history_meals) / avg_window if avg_window else 0.0
+    # Divisor = Anzahl Tage im Fenster, gekürzt auf das Lebensalter des Kindes.
+    # So wird ein Tag ohne Eintrag nicht aus dem Schnitt rausgerechnet (sonst
+    # würde ein vergessener Erfassungstag den Mahlzeiten-Schnitt künstlich erhöhen).
+    birth_local_date = (
+        as_aware(child.birth_at).astimezone(TZ).date() if child.birth_at else None
+    )
+    if birth_local_date and birth_local_date > window_start_date:
+        # Baby ist jünger als das Fenster lang ist
+        avg_window = max(1, (today - birth_local_date).days)
+    else:
+        avg_window = AVG_WINDOW_DAYS
+    avg_meals = len(history_meals) / avg_window
 
     today_feeds = session.exec(
         select(Feeding)
