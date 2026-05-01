@@ -2,7 +2,8 @@
 Mahlzeit), Hebammen-Faustregel für Tages-Trinkbedarf, Schnitt der letzten 5 Tage.
 
 Stillen-Volumen wird mit ``BREAST_ML_PER_MIN`` (1.5 ml/min) geschätzt.
-Tages-Trinkbedarf = max(birth_weight_g, max(weight_measurements)) / 6 / 10 ml.
+Tages-Trinkbedarf = max(birth_weight_g, max(weight_measurements)) / 6 in ml.
+Bei 4'200 g → 700 ml/Tag.
 """
 
 from __future__ import annotations
@@ -190,7 +191,7 @@ def daily_recommendation(
     if ref_g is None:
         return None
 
-    daily_ml = int(round(ref_g / 6 / 10))
+    daily_ml = int(round(ref_g / 6))
 
     today = now.date()
     window_start_date = today - timedelta(days=AVG_WINDOW_DAYS)
