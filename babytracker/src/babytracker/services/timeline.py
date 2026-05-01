@@ -1,10 +1,15 @@
 """Aggregiert alle Events aus Feeding/Diaper/Sleep/Vital/Health/Med/MotherLog/Note
 in einen chronologischen Zeitstrahl. Für die Tagesverlauf-Seite.
+
+Unterstützt:
+- Datums-Bereiche (Heute/Gestern/7 Tage/Custom von–bis)
+- Multi-Kategorie-Filter (breast/bottle/diaper/sleep/temp/health/med/growth/mother/note)
+- Aggregat-Totale pro Kategorie für die ausgewählten Filter
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -23,7 +28,7 @@ from babytracker.models import (
     SleepSession,
     Vital,
 )
-from babytracker.services.daily import as_aware
+from babytracker.services.daily import as_aware, format_duration
 
 TZ = ZoneInfo(settings.timezone)
 
@@ -253,77 +258,257 @@ def _measurement_line(m: Measurement) -> TimelineEvent:
     )
 
 
+#: Filter-Schlüssel, die das UI als Chips anbietet. Reihenfolge bestimmt
+#: auch die Reihenfolge der Total-Chips.
+CATEGORY_KEYS: list[str] = [
+    "breast", "bottle", "diaper", "sleep",
+    "temp", "health", "med", "growth", "mother", "note",
+]
+
+CATEGORY_LABELS: dict[str, tuple[str, str]] = {
+    "breast": ("🤱", "Stillen"),
+    "bottle": ("🍼", "Flasche"),
+    "diaper": ("💩", "Windel"),
+    "sleep":  ("😴", "Schlaf"),
+    "temp":   ("🌡", "Temperatur"),
+    "health": ("🩹", "Gesundheit"),
+    "med":    ("💊", "Medi"),
+    "growth": ("📈", "Wachstum"),
+    "mother": ("👩", "Mama"),
+    "note":   ("📝", "Notiz"),
+}
+
+
 def events_for_range(
     session: Session,
     child: Child,
     start_utc: datetime,
     end_utc: datetime,
+    categories: set[str] | None = None,
 ) -> list[TimelineEvent]:
-    """Alle Events zwischen start und end (exclusive), chronologisch absteigend."""
+    """Alle Events zwischen start und end (exclusive), chronologisch absteigend.
+
+    ``categories`` ist eine Menge von Filter-Schlüsseln aus ``CATEGORY_KEYS``.
+    ``None`` oder leer = keine Filterung (alles anzeigen).
+    """
     out: list[TimelineEvent] = []
+    active = set(categories) if categories else None
 
-    for f in session.exec(
-        select(Feeding)
-        .where(Feeding.child_id == child.id)
-        .where(Feeding.started_at >= start_utc, Feeding.started_at < end_utc)
-    ).all():
-        out.append(_feed_line(f))
+    def want(cat: str) -> bool:
+        return active is None or cat in active
 
-    for d in session.exec(
-        select(Diaper)
-        .where(Diaper.child_id == child.id)
-        .where(Diaper.changed_at >= start_utc, Diaper.changed_at < end_utc)
-    ).all():
-        out.append(_diaper_line(d))
+    if want("breast") or want("bottle"):
+        feedings = session.exec(
+            select(Feeding)
+            .where(Feeding.child_id == child.id)
+            .where(Feeding.started_at >= start_utc, Feeding.started_at < end_utc)
+        ).all()
+        for f in feedings:
+            if f.kind == "breast" and want("breast"):
+                out.append(_feed_line(f))
+            elif f.kind == "bottle" and want("bottle"):
+                out.append(_feed_line(f))
 
-    for s in session.exec(
-        select(SleepSession)
-        .where(SleepSession.child_id == child.id)
-        .where(SleepSession.started_at >= start_utc, SleepSession.started_at < end_utc)
-    ).all():
-        out.extend(_sleep_line(s))
+    if want("diaper"):
+        for d in session.exec(
+            select(Diaper)
+            .where(Diaper.child_id == child.id)
+            .where(Diaper.changed_at >= start_utc, Diaper.changed_at < end_utc)
+        ).all():
+            out.append(_diaper_line(d))
 
-    for v in session.exec(
-        select(Vital)
-        .where(Vital.child_id == child.id, Vital.source == "manual")
-        .where(Vital.measured_at >= start_utc, Vital.measured_at < end_utc)
-    ).all():
-        out.append(_vital_line(v))
+    if want("sleep"):
+        for s in session.exec(
+            select(SleepSession)
+            .where(SleepSession.child_id == child.id)
+            .where(SleepSession.started_at >= start_utc, SleepSession.started_at < end_utc)
+        ).all():
+            out.extend(_sleep_line(s))
 
-    for e in session.exec(
-        select(HealthEvent)
-        .where(HealthEvent.child_id == child.id)
-        .where(HealthEvent.recorded_at >= start_utc, HealthEvent.recorded_at < end_utc)
-    ).all():
-        out.append(_health_line(e))
+    if want("temp"):
+        for v in session.exec(
+            select(Vital)
+            .where(Vital.child_id == child.id, Vital.source == "manual", Vital.kind == "temp_body")
+            .where(Vital.measured_at >= start_utc, Vital.measured_at < end_utc)
+        ).all():
+            out.append(_vital_line(v))
 
-    for m in session.exec(
-        select(Medication)
-        .where(Medication.child_id == child.id)
-        .where(Medication.given_at >= start_utc, Medication.given_at < end_utc)
-    ).all():
-        out.append(_med_line(m))
+    if want("health"):
+        for e in session.exec(
+            select(HealthEvent)
+            .where(HealthEvent.child_id == child.id)
+            .where(HealthEvent.recorded_at >= start_utc, HealthEvent.recorded_at < end_utc)
+        ).all():
+            out.append(_health_line(e))
 
-    for ml in session.exec(
-        select(MotherLog)
-        .where(MotherLog.logged_at >= start_utc, MotherLog.logged_at < end_utc)
-    ).all():
-        out.append(_mother_line(ml))
+    if want("med"):
+        for m in session.exec(
+            select(Medication)
+            .where(Medication.child_id == child.id)
+            .where(Medication.given_at >= start_utc, Medication.given_at < end_utc)
+        ).all():
+            out.append(_med_line(m))
 
-    for n in session.exec(
-        select(Note)
-        .where(Note.logged_at >= start_utc, Note.logged_at < end_utc)
-    ).all():
-        out.append(_note_line(n))
+    if want("mother"):
+        for ml in session.exec(
+            select(MotherLog)
+            .where(MotherLog.logged_at >= start_utc, MotherLog.logged_at < end_utc)
+        ).all():
+            out.append(_mother_line(ml))
 
-    for m in session.exec(
-        select(Measurement)
-        .where(Measurement.child_id == child.id)
-        .where(Measurement.measured_at >= start_utc, Measurement.measured_at < end_utc)
-    ).all():
-        out.append(_measurement_line(m))
+    if want("note"):
+        for n in session.exec(
+            select(Note)
+            .where(Note.logged_at >= start_utc, Note.logged_at < end_utc)
+        ).all():
+            out.append(_note_line(n))
+
+    if want("growth"):
+        for m in session.exec(
+            select(Measurement)
+            .where(Measurement.child_id == child.id)
+            .where(Measurement.measured_at >= start_utc, Measurement.measured_at < end_utc)
+        ).all():
+            out.append(_measurement_line(m))
 
     out.sort(key=lambda e: e.when, reverse=True)
+    return out
+
+
+@dataclass
+class CategoryTotal:
+    """Aggregat-Zusammenfassung pro Filter-Kategorie."""
+
+    key: str
+    icon: str
+    label: str
+    summary: str  # vorgefertigte Anzeige, z.B. "12× · 245 Min"
+
+
+def category_totals(
+    session: Session,
+    child: Child,
+    start_utc: datetime,
+    end_utc: datetime,
+    categories: list[str],
+) -> list[CategoryTotal]:
+    """Liefert ein Total-Chip pro aktivem Filter, in Reihenfolge der Eingabe."""
+    keep_order = [c for c in categories if c in CATEGORY_LABELS]
+    if not keep_order:
+        return []
+
+    out: list[CategoryTotal] = []
+    feedings: list[Feeding] | None = None
+
+    def need_feedings() -> list[Feeding]:
+        nonlocal feedings
+        if feedings is None:
+            feedings = list(session.exec(
+                select(Feeding)
+                .where(Feeding.child_id == child.id)
+                .where(Feeding.started_at >= start_utc, Feeding.started_at < end_utc)
+            ).all())
+        return feedings
+
+    for key in keep_order:
+        icon, label = CATEGORY_LABELS[key]
+        summary = "—"
+
+        if key == "breast":
+            fs = [f for f in need_feedings() if f.kind == "breast"]
+            mins = sum((f.duration_left_min or 0) + (f.duration_right_min or 0) for f in fs)
+            summary = f"{len(fs)}× · {mins} Min"
+
+        elif key == "bottle":
+            fs = [f for f in need_feedings() if f.kind == "bottle"]
+            ml = sum((f.bottle_taken_ml or 0) for f in fs)
+            summary = f"{len(fs)}× · {ml} ml getrunken"
+
+        elif key == "diaper":
+            ds = list(session.exec(
+                select(Diaper)
+                .where(Diaper.child_id == child.id)
+                .where(Diaper.changed_at >= start_utc, Diaper.changed_at < end_utc)
+            ).all())
+            pees = sum(1 for d in ds if d.pee)
+            stools = sum(1 for d in ds if d.stool)
+            summary = f"{pees} Pipi · {stools} Stuhl"
+
+        elif key == "sleep":
+            ss = list(session.exec(
+                select(SleepSession)
+                .where(SleepSession.child_id == child.id)
+                .where(SleepSession.started_at >= start_utc, SleepSession.started_at < end_utc)
+            ).all())
+            total_min = 0
+            now = datetime.now(TZ)
+            for s in ss:
+                start = as_aware(s.started_at)
+                end = as_aware(s.ended_at) if s.ended_at else min(now, end_utc)
+                if end and start and end > start:
+                    total_min += int((end - start).total_seconds() / 60)
+            summary = f"{len(ss)}× · {format_duration(total_min)}"
+
+        elif key == "temp":
+            vs = list(session.exec(
+                select(Vital)
+                .where(Vital.child_id == child.id, Vital.source == "manual", Vital.kind == "temp_body")
+                .where(Vital.measured_at >= start_utc, Vital.measured_at < end_utc)
+            ).all())
+            if vs:
+                vals = [v.value for v in vs]
+                avg = sum(vals) / len(vals)
+                summary = f"{len(vs)}× · ⌀ {avg:.1f} °C · max {max(vals):.1f}"
+            else:
+                summary = "0×"
+
+        elif key == "health":
+            n = session.exec(
+                select(HealthEvent)
+                .where(HealthEvent.child_id == child.id)
+                .where(HealthEvent.recorded_at >= start_utc, HealthEvent.recorded_at < end_utc)
+            ).all()
+            summary = f"{len(n)} Einträge"
+
+        elif key == "med":
+            n = session.exec(
+                select(Medication)
+                .where(Medication.child_id == child.id)
+                .where(Medication.given_at >= start_utc, Medication.given_at < end_utc)
+            ).all()
+            summary = f"{len(n)} Gaben"
+
+        elif key == "growth":
+            n = session.exec(
+                select(Measurement)
+                .where(Measurement.child_id == child.id)
+                .where(Measurement.measured_at >= start_utc, Measurement.measured_at < end_utc)
+            ).all()
+            summary = f"{len(n)} Messungen"
+
+        elif key == "mother":
+            ms = list(session.exec(
+                select(MotherLog)
+                .where(MotherLog.logged_at >= start_utc, MotherLog.logged_at < end_utc)
+            ).all())
+            by_cat: dict[str, int] = {}
+            for m in ms:
+                by_cat[m.category] = by_cat.get(m.category, 0) + 1
+            if by_cat:
+                top = sorted(by_cat.items(), key=lambda kv: -kv[1])[:3]
+                summary = f"{len(ms)}× · " + ", ".join(f"{c} {n}" for c, n in top)
+            else:
+                summary = "0×"
+
+        elif key == "note":
+            n = session.exec(
+                select(Note)
+                .where(Note.logged_at >= start_utc, Note.logged_at < end_utc)
+            ).all()
+            summary = f"{len(n)} Notizen"
+
+        out.append(CategoryTotal(key=key, icon=icon, label=label, summary=summary))
+
     return out
 
 
@@ -345,4 +530,17 @@ def day_range_utc(day_iso: str) -> tuple[datetime, datetime]:
 def week_range_utc(today: datetime, days: int = 7) -> tuple[datetime, datetime]:
     end = datetime.combine(today.date(), time.min, tzinfo=TZ) + timedelta(days=1)
     start = end - timedelta(days=days)
+    return start, end
+
+
+def custom_range_utc(from_iso: str, to_iso: str) -> tuple[datetime, datetime]:
+    """Inklusiver Datums-Bereich für Custom-Filter. ``to_iso`` zählt mit (bis
+    Tagesende). ValueError bei ungültigem Format oder ``from > to``.
+    """
+    d_from = datetime.strptime(from_iso, "%Y-%m-%d").date()
+    d_to = datetime.strptime(to_iso, "%Y-%m-%d").date()
+    if d_from > d_to:
+        raise ValueError("from > to")
+    start = datetime.combine(d_from, time.min, tzinfo=TZ)
+    end = datetime.combine(d_to, time.min, tzinfo=TZ) + timedelta(days=1)
     return start, end

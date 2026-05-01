@@ -17,12 +17,12 @@ from sqlmodel import Session, select
 from babytracker.config import settings
 from babytracker.models import (
     Child,
-    Feeding,
     Measurement,
     Vital,
     WarningRuleConfig,
 )
 from babytracker.services.daily import as_aware, diaper_summary
+from babytracker.services.feeding import Meal, last_meal
 from babytracker.services.who_lms import evaluate
 
 TZ = ZoneInfo(settings.timezone)
@@ -144,29 +144,26 @@ def _weight_loss_adjustment(session: Session, child: Child) -> tuple[float, str 
     return 0.0, None
 
 
-def _breast_duration_adjustment(last: Feeding) -> tuple[float, str | None]:
-    """Wenn die letzte Still-Einheit kürzer war als ideal, häufiger erinnern.
+def _breast_duration_adjustment(meal: Meal) -> tuple[float, str | None]:
+    """Wenn die letzte Stillzeit kürzer als ~15 Min war, häufiger erinnern.
 
-    Ideal: 15 Min pro gestillter Seite (15 bei einseitig, 30 bei beidseitig).
-    Toleranz ±10 Min. Darunter: -30 Min, bei >20 Min Delta: -60 Min.
+    Bei einer Combo-Mahlzeit (Stillen + Schoppen <20 Min danach) wird **kein**
+    Penalty angewendet – der Schoppen füllt eine zu kurze Stillzeit auf.
+
+    Ohne Combo:
+      • <5 Min: -60 Min (sehr kurz, vermutlich nicht satt)
+      • 5–14 Min: -30 Min (kurz, früher prüfen)
+      • ≥15 Min: keine Verkürzung
     """
-    if last.kind != "breast":
+    if not meal.has_breast or meal.is_combo:
         return 0.0, None
-    left = last.duration_left_min or 0
-    right = last.duration_right_min or 0
-    actual = left + right
+    actual = meal.breast_min
     if actual <= 0:
         return 0.0, None
-
-    sides_used = (1 if left > 0 else 0) + (1 if right > 0 else 0)
-    if sides_used == 0:
-        return 0.0, None
-    ideal = 15 * sides_used
-    delta = ideal - actual
-    if delta > 20:
-        return -1.0, f"letzte Mahlzeit nur {actual} Min (soll ~{ideal})"
-    if delta > 10:
-        return -0.5, f"letzte Mahlzeit {actual} Min (soll ~{ideal})"
+    if actual < 5:
+        return -1.0, f"letzte Stillzeit nur {actual} Min"
+    if actual < 15:
+        return -0.5, f"letzte Stillzeit {actual} Min (kurz)"
     return 0.0, None
 
 
@@ -189,13 +186,9 @@ def estimate_feed_interval(session: Session, child: Child, now: datetime) -> Fee
     if w_reason:
         reasons.append(f"{w_reason} {w_adj:+.1f}h")
 
-    last_feed = session.exec(
-        select(Feeding)
-        .where(Feeding.child_id == child.id)
-        .order_by(Feeding.started_at.desc())
-    ).first()
-    if last_feed:
-        d_adj, d_reason = _breast_duration_adjustment(last_feed)
+    last = last_meal(session, child)
+    if last:
+        d_adj, d_reason = _breast_duration_adjustment(last)
         total += d_adj
         if d_reason:
             reasons.append(f"{d_reason} {d_adj:+.1f}h")
@@ -207,15 +200,11 @@ def estimate_feed_interval(session: Session, child: Child, now: datetime) -> Fee
 def check_no_feed(session: Session, child: Child, now: datetime) -> WarningItem | None:
     if now.hour < 7 or now.hour >= 22:
         return None
-    latest = session.exec(
-        select(Feeding)
-        .where(Feeding.child_id == child.id)
-        .order_by(Feeding.started_at.desc())
-    ).first()
-    if not latest:
+    last = last_meal(session, child)
+    if not last:
         return None
-    last_at = as_aware(latest.started_at)
-    hours_since = (now - last_at).total_seconds() / 3600
+    last_end = last.end_at
+    hours_since = (now - last_end).total_seconds() / 3600
 
     est = estimate_feed_interval(session, child, now)
     if hours_since < est.hours:
@@ -238,7 +227,7 @@ def check_no_feed(session: Session, child: Child, now: datetime) -> WarningItem 
             "expected": round(est.hours, 2),
             "base": round(est.base_hours, 2),
             "reasons": est.reasons,
-            "last_at": last_at.isoformat(),
+            "last_end_at": last_end.isoformat(),
         },
     )
 

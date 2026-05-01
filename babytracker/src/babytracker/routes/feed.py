@@ -13,6 +13,7 @@ from babytracker.db import get_session
 from babytracker.models import Feeding
 from babytracker.routes._shared import TZ, get_child, get_user_id, now_local_iso, parse_past_datetime
 from babytracker.services.daily import feed_summary, format_ago
+from babytracker.services.feeding import daily_recommendation, last_meal
 from babytracker.services.warnings import estimate_feed_interval
 
 router = APIRouter()
@@ -54,9 +55,12 @@ async def feed_index(
     now = datetime.now(TZ)
     est = estimate_feed_interval(session, child, now)
     next_in_min: int | None = None
-    if summary.last_at and summary.last_at <= now:
-        from_last = (now - summary.last_at).total_seconds() / 3600
+    last = last_meal(session, child)
+    if last and last.end_at <= now:
+        from_last = (now - last.end_at).total_seconds() / 3600
         next_in_min = int((est.hours - from_last) * 60)
+
+    recommendation = daily_recommendation(session, child, now)
 
     return templates.TemplateResponse(
         request,
@@ -72,6 +76,7 @@ async def feed_index(
             "interval_base": est.base_hours,
             "interval_reasons": est.reasons,
             "next_in_min": next_in_min,
+            "recommendation": recommendation,
         },
     )
 
@@ -97,6 +102,10 @@ async def feed_new(
     last_side = last_breast.breast_side if last_breast else None
     default_side = "right" if last_side == "left" else "left"
 
+    recommendation = (
+        daily_recommendation(session, child, datetime.now(TZ)) if kind == "bottle" else None
+    )
+
     return templates.TemplateResponse(
         request,
         "feed/new.html",
@@ -108,6 +117,7 @@ async def feed_new(
             "now_local": now_local_iso(),
             "default_side": default_side,
             "bottle_types": BOTTLE_TYPES,
+            "recommendation": recommendation,
         },
     )
 

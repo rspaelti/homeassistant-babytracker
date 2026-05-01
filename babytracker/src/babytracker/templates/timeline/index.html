@@ -10,33 +10,97 @@
      class="bg-brand text-white text-sm font-semibold px-3 py-1.5 rounded-lg">+ Notiz</a>
 </div>
 
-<div class="flex gap-2 mb-4 text-sm overflow-x-auto">
-  <a href="{{ root }}/timeline?range=today"
+{# Aktive Kategorie-Filter als hidden inputs für Quick-Range-Forms #}
+{% macro cat_hidden() -%}
+{% for c in active_cats %}<input type="hidden" name="cat" value="{{ c }}">{% endfor %}
+{%- endmacro %}
+
+{# Aktive Kategorie-Filter als URL-Suffix für die Schnellauswahl-Links #}
+{% set cat_query %}{% for c in active_cats %}&cat={{ c }}{% endfor %}{% endset %}
+
+<div class="flex flex-wrap gap-2 mb-3 text-sm">
+  <a href="{{ root }}/timeline?range=today{{ cat_query }}"
      class="shrink-0 px-3 py-1.5 rounded-lg border
             {% if range == 'today' %}bg-brand text-white border-brand
             {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
     Heute
   </a>
-  <a href="{{ root }}/timeline?range=yesterday"
+  <a href="{{ root }}/timeline?range=yesterday{{ cat_query }}"
      class="shrink-0 px-3 py-1.5 rounded-lg border
             {% if range == 'yesterday' %}bg-brand text-white border-brand
             {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
     Gestern
   </a>
-  <a href="{{ root }}/timeline?range=7d"
+  <a href="{{ root }}/timeline?range=7d{{ cat_query }}"
      class="shrink-0 px-3 py-1.5 rounded-lg border
             {% if range == '7d' %}bg-brand text-white border-brand
             {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700{% endif %}">
     7 Tage
   </a>
-  <form method="get" action="{{ root }}/timeline" class="flex gap-1 shrink-0">
-    <input type="hidden" name="range" value="day">
-    <input type="date" name="date" value="{{ date or today_iso }}"
-           class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 text-sm">
-    <button type="submit"
-            class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">›</button>
-  </form>
 </div>
+
+<form method="get" action="{{ root }}/timeline" class="flex flex-wrap items-end gap-2 mb-4 text-sm">
+  <input type="hidden" name="range" value="custom">
+  {{ cat_hidden() }}
+  <label class="block">
+    <span class="text-xs text-slate-500">Von</span>
+    <input type="date" name="from" value="{{ date_from }}" max="{{ today_iso }}"
+           class="block rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5">
+  </label>
+  <label class="block">
+    <span class="text-xs text-slate-500">Bis</span>
+    <input type="date" name="to" value="{{ date_to }}" max="{{ today_iso }}"
+           class="block rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5">
+  </label>
+  <button type="submit"
+          class="px-3 py-1.5 rounded-lg border bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700
+                 {% if range == 'custom' %}!bg-brand !text-white !border-brand{% endif %}">
+    Anwenden
+  </button>
+</form>
+
+<form method="get" action="{{ root }}/timeline" class="mb-3">
+  <input type="hidden" name="range" value="{{ range }}">
+  {% if range == 'custom' %}
+  <input type="hidden" name="from" value="{{ date_from }}">
+  <input type="hidden" name="to" value="{{ date_to }}">
+  {% endif %}
+  <div class="flex flex-wrap gap-1.5 text-sm">
+    {% for key in category_keys %}
+      {% set lbl = category_labels[key] %}
+      {% set active = key in active_cats %}
+      <label class="cursor-pointer">
+        <input type="checkbox" name="cat" value="{{ key }}" class="peer sr-only"
+               onchange="this.form.submit()" {% if active %}checked{% endif %}>
+        <span class="inline-block px-2.5 py-1 rounded-full border text-xs
+                     {% if active %}bg-brand text-white border-brand
+                     {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300{% endif %}">
+          {{ lbl[0] }} {{ lbl[1] }}
+        </span>
+      </label>
+    {% endfor %}
+    {% if active_cats %}
+    <a href="{{ root }}/timeline?range={{ range }}{% if range == 'custom' %}&from={{ date_from }}&to={{ date_to }}{% endif %}"
+       class="inline-block px-2.5 py-1 rounded-full text-xs text-slate-500 underline">
+      Filter zurücksetzen
+    </a>
+    {% endif %}
+  </div>
+</form>
+
+{% if totals %}
+<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 mb-3">
+  <div class="text-xs text-slate-500 uppercase tracking-wide mb-1.5">Total · {{ label }}</div>
+  <div class="flex flex-wrap gap-2 text-sm">
+    {% for t in totals %}
+    <div class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+      <span class="mr-1">{{ t.icon }}</span><span class="font-semibold">{{ t.label }}</span>
+      <span class="text-slate-500 dark:text-slate-400">· {{ t.summary }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 <p class="text-xs text-slate-500 mb-3">{{ label }} · {{ count }} Ereignis{{ 'se' if count != 1 else '' }}</p>
 

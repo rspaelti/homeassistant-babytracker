@@ -80,6 +80,15 @@
   </div>
 
   {% else %}
+  {% if recommendation is defined and recommendation %}
+  <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3 text-sm">
+    <div class="font-semibold">🍼 Empfohlene Menge ~{{ recommendation.ml_per_meal }} ml</div>
+    <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+      Tagesbedarf {{ recommendation.daily_ml }} ml ({{ recommendation.reference_weight_g }} g ÷ 6) · ~{{ recommendation.avg_meals_per_day }} Mahlzeiten/Tag
+    </div>
+  </div>
+  {% endif %}
+
   <div>
     <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-1">Typ</span>
     <div class="grid grid-cols-4 gap-2 text-sm">

@@ -16,6 +16,7 @@ from babytracker.auth import CurrentUser, get_current_user
 from babytracker.config import settings  # noqa: F401  # keep env/side effects
 from babytracker.db import engine, get_session
 from babytracker.models import Child, Measurement, Medication, MotherLog, Vital, WarningState
+from babytracker.services.feeding import daily_recommendation, last_meal
 from babytracker.services.owlet_sync import fetch_live
 from babytracker.services.timeline import day_range_utc, events_for_range
 from babytracker.services.warnings import estimate_feed_interval
@@ -228,17 +229,21 @@ async def home(  # noqa: PLR0912, PLR0915
 
         ctx["owlet_live"] = await fetch_live()
 
-        # Dynamisches Still-Intervall → nächste empfohlene Mahlzeit
+        # Dynamisches Still-Intervall → nächste empfohlene Mahlzeit.
+        # Anker ist das Ende der letzten Mahlzeit (Combo: Stillen + Schoppen
+        # innerhalb 20 Min = 1 Mahlzeit, Endzeit = Schoppen-Ende).
         now = datetime.now(TZ)
         est = estimate_feed_interval(session, child, now)
         ctx["feed_interval_hours"] = est.hours
         ctx["feed_interval_base"] = est.base_hours
         ctx["feed_interval_reasons"] = est.reasons
-        last_at = ctx["feed_summary"].last_at
-        if last_at and last_at <= now:
-            from_last = (now - last_at).total_seconds() / 3600
+        last = last_meal(session, child)
+        if last and last.end_at <= now:
+            from_last = (now - last.end_at).total_seconds() / 3600
             ctx["feed_next_in_min"] = int((est.hours - from_last) * 60)
         else:
             ctx["feed_next_in_min"] = None
+
+        ctx["feed_recommendation"] = daily_recommendation(session, child, now)
 
     return templates.TemplateResponse(request, "home.html", ctx)
