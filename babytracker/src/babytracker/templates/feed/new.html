@@ -137,6 +137,18 @@
   </button>
 </form>
 
+{% if is_edit %}
+<form method="post" action="{{ root }}/feed/{{ entry.id }}/delete"
+      onsubmit="return confirm('Diesen Mahlzeit-Eintrag wirklich löschen?')"
+      class="mt-3">
+  <button type="submit"
+          class="w-full text-rose-600 hover:text-rose-700 border border-rose-300 dark:border-rose-700/60
+                 bg-white dark:bg-slate-900 font-semibold py-3 rounded-xl text-sm">
+    🗑 Eintrag löschen
+  </button>
+</form>
+{% endif %}
+
 <script>
   function feedTimer(initLeftMin, initRightMin) {
     return {

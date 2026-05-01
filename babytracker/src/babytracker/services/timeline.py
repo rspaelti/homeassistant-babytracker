@@ -42,6 +42,7 @@ class TimelineEvent:
     detail: str = ""
     extra_class: str = ""  # optional CSS-Klasse (z.B. für kritisch)
     edit_url: str = ""  # relativer Pfad für Edit-Link
+    delete_url: str = ""  # relativer Pfad für Delete-POST
 
 
 def _feed_line(f: Feeding) -> TimelineEvent:
@@ -70,6 +71,7 @@ def _feed_line(f: Feeding) -> TimelineEvent:
         title=("Stillen" if f.kind == "breast" else "Flasche"),
         detail=detail,
         edit_url=f"/feed/{f.id}/edit",
+        delete_url=f"/feed/{f.id}/delete",
     )
 
 
@@ -101,11 +103,13 @@ def _diaper_line(d: Diaper) -> TimelineEvent:
         title="Windel",
         detail=detail,
         edit_url=f"/diaper/{d.id}/edit",
+        delete_url=f"/diaper/{d.id}/delete",
     )
 
 
 def _sleep_line(s: SleepSession) -> list[TimelineEvent]:
     edit = f"/sleep/{s.id}/edit"
+    delete = f"/sleep/{s.id}/delete"
     events = [
         TimelineEvent(
             when=as_aware(s.started_at),
@@ -114,6 +118,7 @@ def _sleep_line(s: SleepSession) -> list[TimelineEvent]:
             title="Eingeschlafen",
             detail=("📍 " + s.location) if s.location else "",
             edit_url=edit,
+            delete_url=delete,
         )
     ]
     if s.ended_at:
@@ -126,6 +131,7 @@ def _sleep_line(s: SleepSession) -> list[TimelineEvent]:
                 title="Aufgewacht",
                 detail=f"{dur} Min geschlafen" + ((" · " + s.notes) if s.notes else ""),
                 edit_url=edit,
+                delete_url=delete,
             )
         )
     return events
@@ -141,6 +147,7 @@ def _vital_line(v: Vital) -> TimelineEvent:
             detail=f"{v.value:.1f} °C",
             extra_class=("text-rose-600 font-semibold" if v.value >= 38.0 else ""),
             edit_url=f"/health/temp/{v.id}/edit",
+            delete_url=f"/health/temp/{v.id}/delete",
         )
     return TimelineEvent(
         when=as_aware(v.measured_at),
@@ -173,6 +180,7 @@ def _health_line(e: HealthEvent) -> TimelineEvent:
         title=title,
         detail=" · ".join(parts) if parts else "",
         edit_url=f"/health/event/{e.id}/edit",
+        delete_url=f"/health/event/{e.id}/delete",
     )
 
 
@@ -187,6 +195,7 @@ def _med_line(m: Medication) -> TimelineEvent:
         title=m.med_name,
         detail=detail,
         edit_url=f"/meds/{m.id}/edit",
+        delete_url=f"/meds/{m.id}/delete",
     )
 
 
@@ -225,6 +234,7 @@ def _mother_line(m: MotherLog) -> TimelineEvent:
         title=f"Mama · {title}",
         detail=" · ".join(parts) if parts else "",
         edit_url=edit,
+        delete_url=f"/mother/{m.id}/delete",
     )
 
 
@@ -236,6 +246,7 @@ def _note_line(n: Note) -> TimelineEvent:
         title="Notiz",
         detail=n.body,
         edit_url=f"/notes/{n.id}/edit",
+        delete_url=f"/notes/{n.id}/delete",
     )
 
 
@@ -255,6 +266,7 @@ def _measurement_line(m: Measurement) -> TimelineEvent:
         title=labels.get(m.kind, m.kind),
         detail=detail,
         edit_url=f"/growth/{m.id}/edit",
+        delete_url=f"/growth/{m.id}/delete",
     )
 
 

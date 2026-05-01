@@ -113,20 +113,28 @@
   </div>
   <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
     {% for e in events %}
-    {% if e.edit_url %}
-    <a href="{{ root }}{{ e.edit_url }}" class="flex gap-3 p-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50">
-    {% else %}
-    <div class="flex gap-3 p-3 text-sm">
-    {% endif %}
-      <div class="shrink-0 w-12 text-xs text-slate-500 font-mono pt-0.5">
-        {{ e.when.strftime('%H:%M') }}
-      </div>
-      <div class="shrink-0 text-xl leading-5">{{ e.icon }}</div>
-      <div class="flex-1 min-w-0">
-        <div class="font-semibold {{ e.extra_class }}">{{ e.title }}</div>
-        {% if e.detail %}<div class="text-xs text-slate-600 dark:text-slate-400 break-words">{{ e.detail }}</div>{% endif %}
-      </div>
-    {% if e.edit_url %}</a>{% else %}</div>{% endif %}
+    <div class="flex items-start gap-2 p-3 text-sm">
+      {% if e.edit_url %}
+      <a href="{{ root }}{{ e.edit_url }}" class="flex-1 min-w-0 flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 -m-1 p-1 rounded">
+      {% else %}
+      <div class="flex-1 min-w-0 flex gap-3">
+      {% endif %}
+        <div class="shrink-0 w-12 text-xs text-slate-500 font-mono pt-0.5">
+          {{ e.when.strftime('%H:%M') }}
+        </div>
+        <div class="shrink-0 text-xl leading-5">{{ e.icon }}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold {{ e.extra_class }}">{{ e.title }}</div>
+          {% if e.detail %}<div class="text-xs text-slate-600 dark:text-slate-400 break-words">{{ e.detail }}</div>{% endif %}
+        </div>
+      {% if e.edit_url %}</a>{% else %}</div>{% endif %}
+      {% if e.delete_url %}
+      <form method="post" action="{{ root }}{{ e.delete_url }}"
+            onsubmit="return confirm('Eintrag löschen?')" class="shrink-0">
+        <button type="submit" class="text-slate-400 hover:text-rose-500 px-2 py-1" aria-label="Löschen">🗑</button>
+      </form>
+      {% endif %}
+    </div>
     {% endfor %}
   </div>
 </div>
