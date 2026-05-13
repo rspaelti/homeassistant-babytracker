@@ -22,8 +22,11 @@ TZ = ZoneInfo(settings.timezone)
 
 #: Altersabhängige Stillen-ml/min-Schätzung. Empirisch kalibriert mit drei
 #: Wiege-Messungen vor/nach Stillen bei Sofia (Tag 22–25): 5.0 / 3.33 / 3.5 g/min
-#: → Median 3.5 für Tag 22–90. Stufen davor/danach orientieren sich an
-#: bekannten Saug-Effizienz-Verläufen (Kolostrum-Phase, Anlauf, Peak, Beikost).
+#: → Median 3.5 für Tag 22–90. Stufen davor entsprechen Kolostrum-Phase und
+#: Anlauf nach Milcheinschuss. Ab Tag 91 ist die Saugleistung pro Minute
+#: ausgereift und bleibt konstant – auch ab Tag 180+ mit Beikost sinkt nur
+#: die Tages-Gesamtmenge (durch Verdrängung), nicht die ml/min während des
+#: tatsächlichen Stillens.
 def breast_ml_per_min(age_days: int) -> float:
     if age_days < 8:
         return 1.0   # Kolostrum-Phase, geringes Volumen, ineffizientes Saugen
@@ -31,9 +34,7 @@ def breast_ml_per_min(age_days: int) -> float:
         return 2.5   # Anlauf nach Milcheinschuss
     if age_days < 91:
         return 3.5   # durch Sofia-Messungen bestätigt
-    if age_days < 181:
-        return 4.0   # Peak Saug-Effizienz
-    return 3.0       # Beikost ergänzt, weniger Stillen-Volumen pro Minute
+    return 4.0       # Peak Saug-Effizienz, konstant nach Tag 90
 
 
 #: Combo-Fenster: Schoppen innerhalb dieser Zeit nach Stillende zählt zur
