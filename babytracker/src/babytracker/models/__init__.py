@@ -4,6 +4,7 @@ from babytracker.models.appointment import Appointment
 from babytracker.models.child import Child
 from babytracker.models.diaper import Diaper
 from babytracker.models.feeding import Feeding
+from babytracker.models.feeding_settings import FeedingSettings
 from babytracker.models.health_event import HealthEvent
 from babytracker.models.journal import JournalEntry
 from babytracker.models.measurement import Measurement
@@ -25,6 +26,7 @@ __all__ = [
     "Child",
     "Diaper",
     "Feeding",
+    "FeedingSettings",
     "HealthEvent",
     "JournalEntry",
     "Measurement",

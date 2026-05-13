@@ -15,26 +15,43 @@ from zoneinfo import ZoneInfo
 from sqlmodel import Session, select
 
 from babytracker.config import settings
-from babytracker.models import Child, Feeding, Measurement
+from babytracker.db import engine
+from babytracker.models import Child, Feeding, FeedingSettings, Measurement
 from babytracker.services.daily import as_aware
 
 TZ = ZoneInfo(settings.timezone)
 
-#: Altersabhängige Stillen-ml/min-Schätzung. Empirisch kalibriert mit drei
-#: Wiege-Messungen vor/nach Stillen bei Sofia (Tag 22–25): 5.0 / 3.33 / 3.5 g/min
-#: → Median 3.5 für Tag 22–90. Stufen davor entsprechen Kolostrum-Phase und
-#: Anlauf nach Milcheinschuss. Ab Tag 91 ist die Saugleistung pro Minute
-#: ausgereift und bleibt konstant – auch ab Tag 180+ mit Beikost sinkt nur
-#: die Tages-Gesamtmenge (durch Verdrängung), nicht die ml/min während des
-#: tatsächlichen Stillens.
-def breast_ml_per_min(age_days: int) -> float:
-    if age_days < 8:
-        return 1.0   # Kolostrum-Phase, geringes Volumen, ineffizientes Saugen
-    if age_days < 22:
-        return 2.5   # Anlauf nach Milcheinschuss
-    if age_days < 91:
-        return 3.5   # durch Sofia-Messungen bestätigt
-    return 4.0       # Peak Saug-Effizienz, konstant nach Tag 90
+
+def load_feeding_settings(session: Session | None = None) -> FeedingSettings:
+    """Lädt die Stillen-ml/min-Settings aus der DB. Fällt auf Defaults zurück,
+    wenn die (Single-Row-)Tabelle leer ist.
+
+    ``session`` ist optional – wenn None, wird eine eigene Session geöffnet,
+    weil ``breast_ml_per_min`` aus tieferen Aufrufebenen (Property der Meal)
+    kommt und nicht überall eine Session injizieren wollen.
+    """
+    if session is not None:
+        cfg = session.get(FeedingSettings, 1)
+        return cfg or FeedingSettings()
+    with Session(engine) as s:
+        cfg = s.get(FeedingSettings, 1)
+        return cfg or FeedingSettings()
+
+
+#: Altersabhängige Stillen-ml/min-Schätzung. Stufen + Werte konfigurierbar
+#: in der ``feeding_settings``-Tabelle (Settings-Page in der Webapp). Defaults
+#: sind empirisch kalibriert mit drei Wiege-Messungen vor/nach Stillen bei
+#: Sofia (Tag 22–25): 5.0 / 3.33 / 3.5 g/min → Median 3.5 für Tag 22–90.
+def breast_ml_per_min(age_days: int, cfg: FeedingSettings | None = None) -> float:
+    if cfg is None:
+        cfg = load_feeding_settings()
+    if age_days <= cfg.phase1_max_day:
+        return cfg.phase1_ml_per_min
+    if age_days <= cfg.phase2_max_day:
+        return cfg.phase2_ml_per_min
+    if age_days <= cfg.phase3_max_day:
+        return cfg.phase3_ml_per_min
+    return cfg.phase4_ml_per_min
 
 
 #: Combo-Fenster: Schoppen innerhalb dieser Zeit nach Stillende zählt zur
@@ -163,20 +180,28 @@ def last_meal(session: Session, child: Child) -> Meal | None:
 
 
 def reference_weight_g(session: Session, child: Child) -> int | None:
-    """Referenzgewicht für Trinkbedarfs-Berechnung: das höchste je gemessene
-    Gewicht (inkl. Geburtsgewicht). Verhindert, dass ein temporärer Verlust
-    den empfohlenen Tagesbedarf nach unten zieht.
+    """Referenzgewicht für Trinkbedarfs-Berechnung: ``max(Geburtsgewicht,
+    letzte Gewichtsmessung)``.
+
+    Begründung:
+    - Aktuelles Gewicht ist die medizinisch korrekte Basis (Bedarf wächst
+      mit dem Kind).
+    - Geburtsgewicht als Untergrenze schützt vor zu niedrigem Bedarf in den
+      ersten Tagen, wo Babys ~7–10 % unter Geburtsgewicht fallen, bevor sie
+      wieder aufholen.
+    - Alte Peaks (frühere Höchstgewichte) zählen nicht – wenn das Gewicht
+      später schwankt, wird mit der aktuellen Messung gerechnet.
     """
-    max_meas = session.exec(
-        select(Measurement.value)
+    latest_meas = session.exec(
+        select(Measurement)
         .where(Measurement.child_id == child.id, Measurement.kind == "weight")
-        .order_by(Measurement.value.desc())
+        .order_by(Measurement.measured_at.desc())
     ).first()
     candidates: list[float] = []
     if child.birth_weight_g:
         candidates.append(float(child.birth_weight_g))
-    if max_meas is not None:
-        candidates.append(float(max_meas))
+    if latest_meas is not None:
+        candidates.append(float(latest_meas.value))
     if not candidates:
         return None
     return int(round(max(candidates)))

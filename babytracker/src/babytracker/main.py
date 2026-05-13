@@ -22,6 +22,7 @@ from babytracker.services.timeline import day_range_utc, events_for_range
 from babytracker.services.warnings import estimate_feed_interval
 from babytracker.routes import diaper as diaper_routes
 from babytracker.routes import feed as feed_routes
+from babytracker.routes import feeding_settings as feeding_settings_routes
 from babytracker.routes import growth as growth_routes
 from babytracker.routes import health as health_routes
 from babytracker.routes import journal as journal_routes
@@ -84,6 +85,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 app.include_router(growth_routes.router)
 app.include_router(setup_routes.router)
 app.include_router(feed_routes.router)
+app.include_router(feeding_settings_routes.router)
 app.include_router(diaper_routes.router)
 app.include_router(sleep_routes.router)
 app.include_router(health_routes.router)

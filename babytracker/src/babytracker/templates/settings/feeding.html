@@ -1,0 +1,109 @@
+{% extends "layout.html" %}
+
+{% block title %}Trinkmengen-Einstellungen{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 mb-3">
+  <a href="{{ root }}/more" class="text-slate-500 dark:text-slate-400 text-sm">← Zurück</a>
+</div>
+
+<h1 class="text-xl font-bold mb-2">Trinkmengen-Einstellungen</h1>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+  Stillen-ml/min-Schätzung pro Altersphase. Wird verwendet, um aus Stillminuten
+  die geschätzte Trinkmenge zu berechnen (auf Home, /feed und Tagesübersicht).
+</p>
+
+{% if request.query_params.get('saved') %}
+<div class="rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700 px-3 py-2 mb-4 text-sm text-emerald-800 dark:text-emerald-200">
+  ✓ Gespeichert
+</div>
+{% endif %}
+
+<form method="post" action="{{ root }}/settings/feeding" class="space-y-4">
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Phase 1 – Kolostrum-Phase</div>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="block">
+        <span class="text-sm text-slate-700 dark:text-slate-300">bis Tag</span>
+        <input type="number" name="phase1_max_day" min="1" max="365" required
+               value="{{ cfg.phase1_max_day }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      </label>
+      <label class="block">
+        <span class="text-sm text-slate-700 dark:text-slate-300">ml/min</span>
+        <input type="number" name="phase1_ml_per_min" step="0.1" min="0" max="20" required
+               value="{{ cfg.phase1_ml_per_min }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      </label>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Phase 2 – Anlauf nach Milcheinschuss</div>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="block">
+        <span class="text-sm text-slate-700 dark:text-slate-300">bis Tag</span>
+        <input type="number" name="phase2_max_day" min="1" max="365" required
+               value="{{ cfg.phase2_max_day }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      </label>
+      <label class="block">
+        <span class="text-sm text-slate-700 dark:text-slate-300">ml/min</span>
+        <input type="number" name="phase2_ml_per_min" step="0.1" min="0" max="20" required
+               value="{{ cfg.phase2_ml_per_min }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      </label>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Phase 3 – Etabliertes Stillen</div>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="block">
+        <span class="text-sm text-slate-700 dark:text-slate-300">bis Tag</span>
+        <input type="number" name="phase3_max_day" min="1" max="365" required
+               value="{{ cfg.phase3_max_day }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      </label>
+      <label class="block">
+        <span class="text-sm text-slate-700 dark:text-slate-300">ml/min</span>
+        <input type="number" name="phase3_ml_per_min" step="0.1" min="0" max="20" required
+               value="{{ cfg.phase3_ml_per_min }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+      </label>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Phase 4 – Peak (ab Tag {{ cfg.phase3_max_day + 1 }})</div>
+    <label class="block">
+      <span class="text-sm text-slate-700 dark:text-slate-300">ml/min</span>
+      <input type="number" name="phase4_ml_per_min" step="0.1" min="0" max="20" required
+             value="{{ cfg.phase4_ml_per_min }}"
+             class="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2">
+    </label>
+  </div>
+
+  <button type="submit"
+          class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl">
+    Speichern
+  </button>
+</form>
+
+<form method="post" action="{{ root }}/settings/feeding/reset"
+      onsubmit="return confirm('Auf Standardwerte zurücksetzen?')" class="mt-3">
+  <button type="submit"
+          class="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold py-2 rounded-xl text-sm">
+    ↺ Standardwerte (1.0 / 2.5 / 3.5 / 4.0)
+  </button>
+</form>
+
+<div class="mt-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+  <div><b>Hintergrund:</b> ml/min beim Stillen ist altersabhängig (Kolostrum-Phase = wenig, Peak-Phase = mehr). Werte sind empirisch via Wiege-Messungen vor/nach Stillen ermittelbar.</div>
+  <div><b>Faustregel:</b> Tagesbedarf ≈ Körpergewicht (g) ÷ 6. Mit den ml/min-Stufen wird abgeschätzt, wie viel ml Sofia beim Stillen tatsächlich aufnimmt.</div>
+  <div><b>Empfehlung:</b> Werte aller paar Wochen nachjustieren, wenn Wiege-Messungen einen anderen Wert ergeben.</div>
+</div>
+
+{% endblock %}
