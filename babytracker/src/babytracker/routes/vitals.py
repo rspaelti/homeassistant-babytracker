@@ -15,8 +15,9 @@ from babytracker.config import settings
 from babytracker.db import get_session
 from babytracker.models import Vital
 from babytracker.routes._shared import get_child
-from babytracker.services.daily import as_aware, format_ago
+from babytracker.services.daily import as_aware, format_ago, format_duration
 from babytracker.services.owlet_sync import fetch_live
+from babytracker.services.vitals_stats import daily_vital_stats
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
@@ -27,6 +28,7 @@ TZ = ZoneInfo(settings.timezone)
 @router.get("/vitals", response_class=HTMLResponse)
 async def vitals_index(
     request: Request,
+    days: int = 7,
     user: CurrentUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -34,6 +36,9 @@ async def vitals_index(
     if not child:
         root = request.scope.get("root_path", "")
         return RedirectResponse(url=f"{root}/setup/child", status_code=303)
+
+    if days not in (3, 7, 14, 30):
+        days = 7
 
     now = datetime.now(TZ)
     since = now - timedelta(hours=24)
@@ -64,6 +69,7 @@ async def vitals_index(
         last_dt[r.kind] = dt
 
     live = await fetch_live()
+    daily_stats = daily_vital_stats(session, child, days=days, now=now)
 
     return templates.TemplateResponse(
         request,
@@ -75,5 +81,8 @@ async def vitals_index(
             "series": series,
             "live": live,
             "format_ago": format_ago,
+            "format_duration": format_duration,
+            "daily_stats": daily_stats,
+            "days": days,
         },
     )

@@ -47,6 +47,77 @@
 
 <p class="text-xs text-slate-400 mt-2">Live-Werte aktualisieren beim Seitenaufruf. Aggregate werden alle 10 Min. gespeichert.</p>
 
+<div class="flex items-center justify-between mt-6 mb-2">
+  <h2 class="text-xs text-slate-500 uppercase tracking-wide">Tagesstatistik · Tag/Nacht × Schlaf/Wach</h2>
+  <div class="flex gap-1 text-xs">
+    {% for d in [3, 7, 14, 30] %}
+    <a href="{{ root }}/vitals?days={{ d }}"
+       class="px-2 py-1 rounded border
+              {% if days == d %}bg-brand text-white border-brand
+              {% else %}bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300{% endif %}">
+      {{ d }}d
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% macro fmt_stat(s, unit, decimals=0) -%}
+{% if s.n == 0 -%}<span class="text-slate-400">–</span>
+{%- else -%}
+{% if decimals == 0 -%}
+⌀ {{ '%.0f' | format(s.avg) }}{{ unit }} <span class="text-slate-500 text-[10px]">({{ '%.0f' | format(s.min_val) }}–{{ '%.0f' | format(s.max_val) }})</span>
+{%- else -%}
+⌀ {{ '%.1f' | format(s.avg) }}{{ unit }} <span class="text-slate-500 text-[10px]">({{ '%.1f' | format(s.min_val) }}–{{ '%.1f' | format(s.max_val) }})</span>
+{%- endif -%}
+{%- endif %}
+{%- endmacro %}
+
+{% macro bucket_card(b, label, icon) -%}
+<div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2 text-[11px] leading-tight">
+  <div class="flex items-center justify-between mb-1">
+    <span class="font-semibold">{{ icon }} {{ label }}</span>
+    <span class="text-slate-500">{{ format_duration(b.duration_min) }}</span>
+  </div>
+  <div class="space-y-0.5">
+    <div><span class="text-rose-600 dark:text-rose-400">❤</span> {{ fmt_stat(b.stats.heart_rate, '') }}</div>
+    <div><span class="text-emerald-600 dark:text-emerald-400">🫁</span> {{ fmt_stat(b.stats.spo2, '%') }}</div>
+    <div><span class="text-amber-600 dark:text-amber-400">🌡</span> {{ fmt_stat(b.stats.temp_skin, '°', 1) }}</div>
+  </div>
+</div>
+{%- endmacro %}
+
+<div class="space-y-2">
+  {% for d in daily_stats %}
+  {% set is_today = loop.first %}
+  <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3
+              {% if is_today %}ring-2 ring-brand/40{% endif %}">
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <span class="font-semibold">{{ d.weekday }}, {{ d.date_iso[8:10] }}.{{ d.date_iso[5:7] }}.</span>
+        {% if is_today %}<span class="text-xs text-brand ml-1">· Heute</span>{% endif %}
+        <span class="text-xs text-slate-400 ml-1">· Tag {{ d.day_of_life }}</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="space-y-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wide">☀ Tag (07–22)</div>
+        {{ bucket_card(d.get('day','sleep'), 'Schlaf', '😴') }}
+        {{ bucket_card(d.get('day','awake'), 'Wach', '👀') }}
+      </div>
+      <div class="space-y-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wide">🌙 Nacht (22–07)</div>
+        {{ bucket_card(d.get('night','sleep'), 'Schlaf', '😴') }}
+        {{ bucket_card(d.get('night','awake'), 'Wach', '👀') }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="text-xs text-slate-400 mt-3">
+  Aggregate aus 10-Min-Buckets. ❤ Puls bpm · 🫁 SpO₂ % · 🌡 Hauttemp °C. Schlaf/Wach aus erfassten Schlaf-Sessions (Auto via Owlet).
+</p>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script>
