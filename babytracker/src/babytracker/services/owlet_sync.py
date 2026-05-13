@@ -184,6 +184,16 @@ async def fetch_live() -> OwletLive:
 # Owlet liefert typischerweise: awake / light_sleep / deep_sleep / out_of_range / sleep_disturbance
 _SLEEP_STATES = {"light_sleep", "deep_sleep", "sleep_disturbance"}
 _AWAKE_STATES = {"awake"}
+_OFFLINE_STATES = {None, "unknown", "unavailable", "out_of_range"}
+
+#: Auto-Sessions werden spätestens nach so vielen Stunden gekappt. Verhindert,
+#: dass eine Session "ewig offen" bleibt wenn Owlet ohne `awake`-Übergang in
+#: `unavailable`/`out_of_range` wechselt (Sock abgenommen, Lade-Pause, …).
+MAX_AUTO_SLEEP_HOURS: float = 6.0
+
+#: Auto-Sessions, die beim Schliessen kürzer als das hier sind, werden statt
+#: gespeichert verworfen. Verhindert Mikro-Fragmentierung (Sock-Wackler).
+MIN_AUTO_SLEEP_SECONDS: int = 180  # 3 Min
 
 
 async def auto_sleep_from_owlet() -> None:
@@ -193,18 +203,19 @@ async def auto_sleep_from_owlet() -> None:
     - sleep_state ∈ {light_sleep, deep_sleep, sleep_disturbance} und keine offene Session
       → neue SleepSession mit owlet_worn=True eröffnen.
     - sleep_state == 'awake' und eine offene SleepSession mit owlet_worn=True existiert
-      → diese schliessen.
+      → diese schliessen. Sessions <``MIN_AUTO_SLEEP_SECONDS`` werden dabei
+      verworfen statt gespeichert (Mikro-Fragmentierung).
     - Manuelle Sessions (owlet_worn=False) bleiben unangetastet.
-    - Bei unknown/unavailable/out_of_range: nichts tun (Socke eventuell am Laden).
+    - Schutzregel: Wenn eine Auto-Session länger als ``MAX_AUTO_SLEEP_HOURS``
+      offen ist (ohne `awake`-Übergang, typischerweise weil der Sock
+      abgenommen wurde), wird sie bei jedem Aufruf auf das Maximum gekappt.
+    - Bei unknown/unavailable/out_of_range: kein Open/Close, aber Schutzregel
+      läuft trotzdem (Sock-Pause → Session sonst hängend).
     """
     if not settings.ha_url or not settings.ha_token:
         return
     st = await get_state(_sensor_entity(SLEEP_STATE_ENTITY_SUFFIX))
-    if not st:
-        return
-    state = st.get("state")
-    if state in (None, "unknown", "unavailable", "out_of_range"):
-        return
+    state = st.get("state") if st else None
 
     now = datetime.now(TZ)
     with Session(engine) as session:
@@ -221,6 +232,25 @@ async def auto_sleep_from_owlet() -> None:
             .order_by(SleepSession.started_at.desc())
         ).first()
 
+        # Schutzregel: zu lang offene Auto-Sessions am Maximum kappen.
+        if open_session is not None and open_session.owlet_worn:
+            start_aware = open_session.started_at
+            if start_aware.tzinfo is None:
+                start_aware = start_aware.replace(tzinfo=TZ)
+            duration_h = (now - start_aware).total_seconds() / 3600
+            if duration_h > MAX_AUTO_SLEEP_HOURS:
+                open_session.ended_at = start_aware + timedelta(hours=MAX_AUTO_SLEEP_HOURS)
+                session.add(open_session)
+                session.commit()
+                log.info(
+                    "Auto-sleep: capped session id=%s at %.1fh (state=%s, was open %.1fh)",
+                    open_session.id, MAX_AUTO_SLEEP_HOURS, state, duration_h,
+                )
+                open_session = None  # damit ggf. gleich eine neue eröffnet wird
+
+        if state in _OFFLINE_STATES:
+            return
+
         if state in _SLEEP_STATES:
             if open_session is None:
                 session.add(SleepSession(
@@ -233,10 +263,22 @@ async def auto_sleep_from_owlet() -> None:
                 log.info("Auto-sleep: opened session (state=%s)", state)
         elif state in _AWAKE_STATES:
             if open_session is not None and open_session.owlet_worn:
-                open_session.ended_at = now
-                session.add(open_session)
-                session.commit()
-                log.info("Auto-sleep: closed session (state=%s)", state)
+                start_aware = open_session.started_at
+                if start_aware.tzinfo is None:
+                    start_aware = start_aware.replace(tzinfo=TZ)
+                duration_sec = (now - start_aware).total_seconds()
+                if duration_sec < MIN_AUTO_SLEEP_SECONDS:
+                    session.delete(open_session)
+                    session.commit()
+                    log.info(
+                        "Auto-sleep: discarded micro-session id=%s (%.0fs < %ds)",
+                        open_session.id, duration_sec, MIN_AUTO_SLEEP_SECONDS,
+                    )
+                else:
+                    open_session.ended_at = now
+                    session.add(open_session)
+                    session.commit()
+                    log.info("Auto-sleep: closed session (state=%s)", state)
 
 
 # --- Alert-Check für WarningRules --------------------------------------------

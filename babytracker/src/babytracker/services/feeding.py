@@ -20,8 +20,21 @@ from babytracker.services.daily import as_aware
 
 TZ = ZoneInfo(settings.timezone)
 
-#: Faustregel Hebamme: 1.5 ml geschätzte Trinkmenge pro Stillminute.
-BREAST_ML_PER_MIN: float = 1.5
+#: Altersabhängige Stillen-ml/min-Schätzung. Empirisch kalibriert mit drei
+#: Wiege-Messungen vor/nach Stillen bei Sofia (Tag 22–25): 5.0 / 3.33 / 3.5 g/min
+#: → Median 3.5 für Tag 22–90. Stufen davor/danach orientieren sich an
+#: bekannten Saug-Effizienz-Verläufen (Kolostrum-Phase, Anlauf, Peak, Beikost).
+def breast_ml_per_min(age_days: int) -> float:
+    if age_days < 8:
+        return 1.0   # Kolostrum-Phase, geringes Volumen, ineffizientes Saugen
+    if age_days < 22:
+        return 2.5   # Anlauf nach Milcheinschuss
+    if age_days < 91:
+        return 3.5   # durch Sofia-Messungen bestätigt
+    if age_days < 181:
+        return 4.0   # Peak Saug-Effizienz
+    return 3.0       # Beikost ergänzt, weniger Stillen-Volumen pro Minute
+
 
 #: Combo-Fenster: Schoppen innerhalb dieser Zeit nach Stillende zählt zur
 #: gleichen Mahlzeit – kein Stilldauer-Penalty fürs Intervall.
@@ -48,10 +61,13 @@ class Meal:
     def is_combo(self) -> bool:
         return self.has_breast and self.has_bottle
 
-    @property
-    def estimated_ml(self) -> int:
-        """Geschätzte Gesamttrinkmenge: Schoppen (gemessen) + Stillen × 1.5 ml/min."""
-        return int(round(self.bottle_ml + self.breast_min * BREAST_ML_PER_MIN))
+    def estimated_ml(self, age_days: int) -> int:
+        """Geschätzte Gesamttrinkmenge: Schoppen (gemessen) + Stillen × Faktor(Alter).
+
+        ``age_days`` ist das Lebensalter zum Zeitpunkt der Mahlzeit (Tag 1 =
+        Geburtstag). Der Faktor wird über :func:`breast_ml_per_min` bestimmt.
+        """
+        return int(round(self.bottle_ml + self.breast_min * breast_ml_per_min(age_days)))
 
 
 def _feed_end(f: Feeding) -> datetime:
@@ -241,7 +257,8 @@ def daily_recommendation(
         .order_by(Feeding.started_at.asc())
     ).all()
     today_meal_list = group_into_meals(today_feeds)
-    today_ml = sum(m.estimated_ml for m in today_meal_list)
+    today_age_days = max(1, (today - birth_local_date).days + 1) if birth_local_date else 1
+    today_ml = sum(m.estimated_ml(today_age_days) for m in today_meal_list)
     today_meals = len(today_meal_list)
 
     if avg_meals > 0:
@@ -272,7 +289,7 @@ class DayBreakdown:
     meals: int              # Anzahl Mahlzeiten (Combo-aware)
     breast_min: int
     bottle_ml: int
-    estimated_ml: int       # Schoppen + Stillen × 1.5 ml/min
+    estimated_ml: int       # Schoppen + Stillen × breast_ml_per_min(day_of_life)
     daily_target_ml: int
     pct: int                # estimated_ml / daily_target_ml × 100, gecappt 100
 
@@ -324,11 +341,12 @@ def daily_breakdown(
         meals = group_into_meals(day_feeds)
         breast_min = sum(_breast_total_min(f) for f in day_feeds)
         bottle_ml = sum((f.bottle_taken_ml or 0) for f in day_feeds)
-        est_ml = sum(m.estimated_ml for m in meals)
+        day_of_life = (cursor - birth_local).days + 1 if birth_local else 0
+        age_for_calc = max(1, day_of_life)
+        est_ml = sum(m.estimated_ml(age_for_calc) for m in meals)
         pct = 0
         if daily_target > 0:
             pct = min(100, int(round(est_ml / daily_target * 100)))
-        day_of_life = (cursor - birth_local).days + 1 if birth_local else 0
         out.append(DayBreakdown(
             date_iso=key,
             weekday=_WEEKDAYS_DE[cursor.weekday()],
